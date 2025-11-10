@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { mockPpdbApplicants } from '../../services/mockApi';
+import { mockPpdbApplicants, ppdbSchedule } from '../../services/mockApi';
 import { PpdbApplicant, PpdbStatus, AIVerificationStatus } from '../../types';
-import { Search, ChevronDown, Check, X, Clock, Eye, Bot } from 'lucide-react';
+import { Search, ChevronDown, Check, X, Clock, Eye, Bot, Edit, Download, Trash2, UserPlus } from 'lucide-react';
 
 const getStatusBadge = (status: PpdbStatus) => {
     switch (status) {
@@ -35,6 +35,7 @@ const AdminPpdbPage: React.FC = () => {
     const [applicants, setApplicants] = useState<PpdbApplicant[]>(mockPpdbApplicants);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedApplicant, setSelectedApplicant] = useState<PpdbApplicant | null>(null);
+    const [editingApplicant, setEditingApplicant] = useState<PpdbApplicant | null>(null);
     const [isVerifying, setIsVerifying] = useState<string | null>(null); // applicant id
 
     const filteredApplicants = useMemo(() => {
@@ -54,7 +55,6 @@ const AdminPpdbPage: React.FC = () => {
         setTimeout(() => {
             setApplicants(prev => prev.map(app => {
                 if (app.id === id) {
-                    // Randomly assign a verification status for simulation
                     const statuses = [AIVerificationStatus.VERIFIED, AIVerificationStatus.MANUAL_REVIEW];
                     const newStatus = statuses[Math.floor(Math.random() * statuses.length)];
                     return { ...app, aiVerificationStatus: newStatus };
@@ -65,10 +65,28 @@ const AdminPpdbPage: React.FC = () => {
         }, 2000);
     }
     
+    const openEditModal = (applicant: PpdbApplicant) => {
+        setEditingApplicant({ ...applicant });
+    };
+
+    const closeEditModal = () => {
+        setEditingApplicant(null);
+    };
+
+    const handleUpdateApplicant = () => {
+        if (!editingApplicant) return;
+        setApplicants(prev => prev.map(app => app.id === editingApplicant.id ? editingApplicant : app));
+        closeEditModal();
+    };
+    
+    const handleEditChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!editingApplicant) return;
+        setEditingApplicant({ ...editingApplicant, [e.target.name]: e.target.value });
+    };
+    
     // Modal to show details
     const renderDetailModal = () => {
         if (!selectedApplicant) return null;
-
         return (
              <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
                 <div className="bg-white rounded-lg shadow-xl w-full max-w-lg">
@@ -76,9 +94,10 @@ const AdminPpdbPage: React.FC = () => {
                         <h3 className="text-xl font-bold font-poppins text-gray-800">Detail Pendaftar</h3>
                         <button onClick={() => setSelectedApplicant(null)} className="text-gray-500 hover:text-gray-800"><X size={24}/></button>
                     </div>
-                    <div className="p-6 space-y-4">
+                    <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
                         <p><strong>No. Registrasi:</strong> {selectedApplicant.registrationNumber}</p>
                         <p><strong>Nama Lengkap:</strong> {selectedApplicant.fullName}</p>
+                        <p><strong>NIK:</strong> {selectedApplicant.nik}</p>
                         <p><strong>Asal Sekolah:</strong> {selectedApplicant.originSchool}</p>
                         <p><strong>Tanggal Daftar:</strong> {new Date(selectedApplicant.submissionDate).toLocaleDateString('id-ID')}</p>
                         <p><strong>Nama Ayah:</strong> {selectedApplicant.fatherName}</p>
@@ -87,9 +106,9 @@ const AdminPpdbPage: React.FC = () => {
                         <div>
                             <strong>Dokumen:</strong>
                             <ul className="list-disc list-inside ml-4">
-                                <li>Kartu Keluarga: {selectedApplicant.documents.kk ? 'Terlampir' : 'Tidak Ada'}</li>
-                                <li>Akta Kelahiran: {selectedApplicant.documents.akta ? 'Terlampir' : 'Tidak Ada'}</li>
-                                <li>Ijazah TK/RA: {selectedApplicant.documents.ijazah ? 'Terlampir' : 'Tidak Ada'}</li>
+                                <li>Kartu Keluarga: {selectedApplicant.documents.kk ? <a href="#" className="text-blue-600 hover:underline">Unduh</a> : 'Tidak Ada'}</li>
+                                <li>Akta Kelahiran: {selectedApplicant.documents.akta ? <a href="#" className="text-blue-600 hover:underline">Unduh</a> : 'Tidak Ada'}</li>
+                                <li>Ijazah TK/RA: {selectedApplicant.documents.ijazah ? <a href="#" className="text-blue-600 hover:underline">Unduh</a> : 'Tidak Ada'}</li>
                             </ul>
                         </div>
                     </div>
@@ -100,6 +119,34 @@ const AdminPpdbPage: React.FC = () => {
             </div>
         )
     };
+    
+     const renderEditModal = () => {
+        if (!editingApplicant) return null;
+
+        return (
+             <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
+                <div className="bg-white rounded-lg shadow-xl w-full max-w-lg">
+                    <div className="p-6 border-b flex justify-between items-center">
+                        <h3 className="text-xl font-bold font-poppins text-gray-800">Edit Pendaftar</h3>
+                        <button onClick={closeEditModal} className="text-gray-500 hover:text-gray-800"><X size={24}/></button>
+                    </div>
+                    <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+                        <div><label className="text-sm font-medium">Nama Lengkap</label><input type="text" name="fullName" value={editingApplicant.fullName} onChange={handleEditChange} className="w-full mt-1 p-2 border rounded" /></div>
+                        <div><label className="text-sm font-medium">NIK</label><input type="text" name="nik" value={editingApplicant.nik} onChange={handleEditChange} className="w-full mt-1 p-2 border rounded" /></div>
+                        <div><label className="text-sm font-medium">Asal Sekolah</label><input type="text" name="originSchool" value={editingApplicant.originSchool} onChange={handleEditChange} className="w-full mt-1 p-2 border rounded" /></div>
+                        <div><label className="text-sm font-medium">Nama Ayah</label><input type="text" name="fatherName" value={editingApplicant.fatherName} onChange={handleEditChange} className="w-full mt-1 p-2 border rounded" /></div>
+                        <div><label className="text-sm font-medium">Nama Ibu</label><input type="text" name="motherName" value={editingApplicant.motherName} onChange={handleEditChange} className="w-full mt-1 p-2 border rounded" /></div>
+                        <div><label className="text-sm font-medium">No. HP</label><input type="text" name="phone" value={editingApplicant.phone} onChange={handleEditChange} className="w-full mt-1 p-2 border rounded" /></div>
+                    </div>
+                     <div className="p-6 bg-gray-50 rounded-b-lg text-right space-x-3">
+                        <button onClick={closeEditModal} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">Batal</button>
+                        <button onClick={handleUpdateApplicant} className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark">Simpan Perubahan</button>
+                    </div>
+                </div>
+            </div>
+        )
+    };
+
 
     return (
         <div className="bg-white p-6 rounded-lg shadow-md">
@@ -141,6 +188,7 @@ const AdminPpdbPage: React.FC = () => {
                                 <td className="px-6 py-4 text-center">{getAIVerificationBadge(app.aiVerificationStatus)}</td>
                                 <td className="px-6 py-4 text-center flex items-center justify-center gap-2">
                                     <button onClick={() => setSelectedApplicant(app)} title="Lihat Detail" className="text-blue-600 hover:text-blue-800"><Eye size={18} /></button>
+                                    <button onClick={() => openEditModal(app)} title="Edit" className="text-green-600 hover:text-green-800"><Edit size={18} /></button>
                                      <button 
                                         onClick={() => handleAIVerify(app.id)} 
                                         title="Verifikasi Dokumen dengan AI" 
@@ -168,6 +216,7 @@ const AdminPpdbPage: React.FC = () => {
                  {filteredApplicants.length === 0 && <p className="text-center text-gray-500 py-8">Tidak ada data pendaftar.</p>}
             </div>
             {renderDetailModal()}
+            {renderEditModal()}
         </div>
     );
 };

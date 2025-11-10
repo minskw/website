@@ -40,6 +40,7 @@ const AdminTeachersPage: React.FC = () => {
         if (isEditing) {
             setTeachers(teachers.map(t => t.id === currentTeacher.id ? currentTeacher : t));
         } else {
+            // FIX: Was incorrectly using setNews, changed to setTeachers
             setTeachers([currentTeacher, ...teachers]);
         }
         closeModal();
@@ -60,7 +61,7 @@ const AdminTeachersPage: React.FC = () => {
     const handleArrayChange = (e: React.ChangeEvent<HTMLTextAreaElement>, field: 'education' | 'achievements') => {
         if (!currentTeacher) return;
         const { value } = e.target;
-        setCurrentTeacher({ ...currentTeacher, [field]: value.split('\n') });
+        setCurrentTeacher({ ...currentTeacher, [field]: value.split('\n').filter(item => item.trim() !== '') });
     };
 
     const renderModal = () => {
@@ -75,7 +76,7 @@ const AdminTeachersPage: React.FC = () => {
                         <h3 className="text-xl font-bold font-poppins text-gray-800">{isEditing ? 'Edit Data Guru' : 'Tambah Guru Baru'}</h3>
                         <button onClick={closeModal} className="text-gray-500 hover:text-gray-800"><X size={24}/></button>
                     </div>
-                    <div className="p-6 space-y-4">
+                    <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div><label className="block text-sm font-medium">Nama Lengkap</label><input type="text" name="name" value={currentTeacher.name} onChange={handleChange} className="mt-1 w-full px-3 py-2 border rounded-md" /></div>
                             <div><label className="block text-sm font-medium">Jabatan</label><input type="text" name="position" value={currentTeacher.position} onChange={handleChange} className="mt-1 w-full px-3 py-2 border rounded-md" /></div>
