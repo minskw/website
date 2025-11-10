@@ -1,15 +1,15 @@
+
 import React, { useState, useEffect, FormEvent } from 'react';
 import { db } from '../../services/firebase';
 import { collection, doc, addDoc, updateDoc, deleteDoc, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { NewsArticle } from '../../types';
 import { PlusCircle, Edit, Trash2, LoaderCircle, X } from 'lucide-react';
 
-type ArticleFormData = Omit<NewsArticle, 'id'>;
+type NewsFormData = Omit<NewsArticle, 'id' | 'date'>;
 
-const emptyArticle: ArticleFormData = {
+const emptyNews: NewsFormData = {
     title: '',
     category: 'Kegiatan',
-    date: new Date().toISOString().split('T')[0],
     imageUrl: '',
     excerpt: '',
     content: ''
@@ -18,13 +18,13 @@ const emptyArticle: ArticleFormData = {
 const NewsFormModal: React.FC<{
     isOpen: boolean;
     onClose: () => void;
-    onSave: (article: ArticleFormData, id?: string) => void;
+    onSave: (article: NewsFormData, id?: string) => void;
     article: NewsArticle | null;
 }> = ({ isOpen, onClose, onSave, article }) => {
-    const [formData, setFormData] = useState<ArticleFormData>(emptyArticle);
+    const [formData, setFormData] = useState<NewsFormData>(emptyNews);
 
     useEffect(() => {
-        setFormData(article ? { ...article } : emptyArticle);
+        setFormData(article ? { title: article.title, category: article.category, imageUrl: article.imageUrl, excerpt: article.excerpt, content: article.content } : emptyNews);
     }, [article, isOpen]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -41,35 +41,35 @@ const NewsFormModal: React.FC<{
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-                <div className="p-6">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+                <form onSubmit={handleSubmit} className="p-6">
                     <div className="flex justify-between items-center mb-4">
                         <h2 className="text-xl font-bold">{article ? 'Edit Berita' : 'Tambah Berita Baru'}</h2>
-                        <button onClick={onClose}><X /></button>
+                        <button type="button" onClick={onClose}><X /></button>
                     </div>
-                    <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="space-y-4">
                         <input name="title" value={formData.title} onChange={handleChange} placeholder="Judul Berita" className="w-full p-2 border rounded" required />
                         <select name="category" value={formData.category} onChange={handleChange} className="w-full p-2 border rounded">
-                            <option value="Prestasi">Prestasi</option>
                             <option value="Kegiatan">Kegiatan</option>
+                            <option value="Prestasi">Prestasi</option>
                             <option value="Pengumuman">Pengumuman</option>
                         </select>
-                        <input name="imageUrl" value={formData.imageUrl} onChange={handleChange} placeholder="URL Gambar" className="w-full p-2 border rounded" required />
-                        <textarea name="excerpt" value={formData.excerpt} onChange={handleChange} placeholder="Kutipan Singkat" className="w-full p-2 border rounded h-24" required />
-                        <textarea name="content" value={formData.content} onChange={handleChange} placeholder="Isi Berita Lengkap (HTML didukung)" className="w-full p-2 border rounded h-40" required />
-                        <div className="flex justify-end gap-2">
-                            <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 rounded">Batal</button>
-                            <button type="submit" className="px-4 py-2 bg-primary text-white rounded">Simpan</button>
-                        </div>
-                    </form>
-                </div>
+                        <input name="imageUrl" value={formData.imageUrl} onChange={handleChange} placeholder="URL Gambar Utama" className="w-full p-2 border rounded" required />
+                        <textarea name="excerpt" value={formData.excerpt} onChange={handleChange} placeholder="Kutipan Singkat (Excerpt)" className="w-full p-2 border rounded h-24" required />
+                        <textarea name="content" value={formData.content} onChange={handleChange} placeholder="Konten Lengkap (mendukung HTML)" className="w-full p-2 border rounded h-48" required />
+                    </div>
+                    <div className="flex justify-end gap-2 mt-6">
+                        <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 rounded">Batal</button>
+                        <button type="submit" className="px-4 py-2 bg-primary text-white rounded">Simpan Berita</button>
+                    </div>
+                </form>
             </div>
         </div>
     );
 };
 
 const AdminNewsPage: React.FC = () => {
-    const [news, setNews] = useState<NewsArticle[]>([]);
+    const [articles, setArticles] = useState<NewsArticle[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
@@ -78,8 +78,8 @@ const AdminNewsPage: React.FC = () => {
         setIsLoading(true);
         const q = query(collection(db, "news"), orderBy("date", "desc"));
         const unsubscribe = onSnapshot(q, (querySnapshot) => {
-            const newsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as NewsArticle));
-            setNews(newsData);
+            const articlesData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as NewsArticle));
+            setArticles(articlesData);
             setIsLoading(false);
         }, (error) => {
             console.error("Error fetching news in real-time:", error);
@@ -88,16 +88,16 @@ const AdminNewsPage: React.FC = () => {
         return () => unsubscribe();
     }, []);
 
-    const handleSave = async (data: ArticleFormData, id?: string) => {
+    const handleSave = async (data: NewsFormData, id?: string) => {
         try {
             if (id) {
                 await updateDoc(doc(db, "news", id), data);
             } else {
-                await addDoc(collection(db, "news"), { ...data, date: new Date().toISOString().split('T')[0] });
+                await addDoc(collection(db, "news"), { ...data, date: new Date().toISOString() });
             }
             setIsModalOpen(false);
         } catch (error) {
-            console.error("Error saving article:", error);
+            console.error("Error saving news article:", error);
             alert("Gagal menyimpan berita.");
         }
     };
@@ -107,7 +107,7 @@ const AdminNewsPage: React.FC = () => {
             try {
                 await deleteDoc(doc(db, "news", id));
             } catch (error) {
-                console.error("Error deleting article:", error);
+                console.error("Error deleting news article:", error);
                 alert("Gagal menghapus berita.");
             }
         }
@@ -130,12 +130,12 @@ const AdminNewsPage: React.FC = () => {
                             <tr>
                                 <th className="text-left py-3 px-4 uppercase font-semibold text-sm">Judul</th>
                                 <th className="text-left py-3 px-4 uppercase font-semibold text-sm">Kategori</th>
-                                <th className="text-left py-3 px-4 uppercase font-semibold text-sm">Tanggal</th>
+                                <th className="text-left py-3 px-4 uppercase font-semibold text-sm">Tanggal Publikasi</th>
                                 <th className="text-left py-3 px-4 uppercase font-semibold text-sm">Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {news.map(article => (
+                            {articles.map(article => (
                                 <tr key={article.id} className="border-b hover:bg-gray-50">
                                     <td className="py-3 px-4 font-medium text-gray-800">{article.title}</td>
                                     <td className="py-3 px-4"><span className="px-2 py-1 text-xs rounded-full bg-gray-200">{article.category}</span></td>
