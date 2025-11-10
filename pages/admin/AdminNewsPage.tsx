@@ -1,9 +1,8 @@
-
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { mockNews } from '../../services/mockApi';
 import { NewsArticle } from '../../types';
 import { GoogleGenAI, Type } from "@google/genai";
-import { PlusCircle, Edit, Trash2, Sparkles, LoaderCircle, CheckCircle, Info } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Sparkles, LoaderCircle, CheckCircle, Info, Filter } from 'lucide-react';
 
 interface SeoSuggestions {
     titles: string[];
@@ -199,6 +198,7 @@ Buat draf konten berita, beberapa alternatif judul, meta deskripsi, dan kata kun
 const AdminNewsPage: React.FC = () => {
     const [news, setNews] = useState(mockNews);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [categoryFilter, setCategoryFilter] = useState<'all' | 'Kegiatan' | 'Pengumuman' | 'Prestasi'>('all');
 
     const handleSaveNews = (data: Omit<NewsArticle, 'id' | 'date' | 'imageUrl' | 'excerpt'>) => {
         const newArticle: NewsArticle = {
@@ -212,17 +212,39 @@ const AdminNewsPage: React.FC = () => {
         setIsModalOpen(false);
     };
 
+    const filteredNews = useMemo(() => {
+        if (categoryFilter === 'all') {
+            return news;
+        }
+        return news.filter(article => article.category === categoryFilter);
+    }, [news, categoryFilter]);
+
   return (
     <>
       <div className="bg-white p-6 rounded-lg shadow-md">
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
           <h1 className="text-2xl font-bold text-gray-800">Manajemen Berita</h1>
-          <button 
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark"
-          >
-            <PlusCircle size={18} /> Tambah Berita
-          </button>
+          <div className="flex items-center gap-4 w-full md:w-auto">
+             <div className="flex items-center gap-2">
+                <Filter size={20} className="text-gray-500" />
+                <select
+                    value={categoryFilter}
+                    onChange={(e) => setCategoryFilter(e.target.value as any)}
+                    className="border rounded-lg p-2 bg-white text-gray-900 focus:ring-primary focus:border-primary"
+                >
+                    <option value="all">Semua Kategori</option>
+                    <option value="Kegiatan">Kegiatan</option>
+                    <option value="Pengumuman">Pengumuman</option>
+                    <option value="Prestasi">Prestasi</option>
+                </select>
+            </div>
+            <button 
+                onClick={() => setIsModalOpen(true)}
+                className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark"
+            >
+                <PlusCircle size={18} /> <span className="hidden sm:inline">Tambah Berita</span>
+            </button>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left text-gray-500">
@@ -235,7 +257,7 @@ const AdminNewsPage: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {news.map(article => (
+              {filteredNews.map(article => (
                 <tr key={article.id} className="bg-white border-b hover:bg-gray-50">
                   <td className="px-6 py-4 font-medium text-gray-900">{article.title}</td>
                   <td className="px-6 py-4">{article.category}</td>
@@ -248,6 +270,7 @@ const AdminNewsPage: React.FC = () => {
               ))}
             </tbody>
           </table>
+          {filteredNews.length === 0 && <p className="text-center text-gray-500 mt-6">Tidak ada berita yang cocok dengan filter yang dipilih.</p>}
         </div>
       </div>
       <AddNewsModal 

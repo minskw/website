@@ -1,9 +1,11 @@
+
 import React, { useContext } from 'react';
 import { HashRouter, Routes, Route, Navigate, Outlet, useLocation, Link } from 'react-router-dom';
 import { AuthProvider, AuthContext } from './hooks/useAuth';
 import { ParentAuthProvider, ParentAuthContext } from './hooks/useParentAuth';
 import { SCHOOL_INFO } from './constants';
-import { LogOut, Wallet, LayoutDashboard } from 'lucide-react';
+// FIX: Replaced non-existent `UserShield` icon from `lucide-react` with the `Shield` icon.
+import { LogOut, Wallet, LayoutDashboard, Shield } from 'lucide-react';
 
 import Header from './components/common/Header';
 import Footer from './components/common/Footer';
@@ -36,6 +38,19 @@ const PublicLayout: React.FC = () => (
       <Outlet />
     </main>
     <Footer />
+    {/* Admin Login FAB */}
+    <Link
+      to="/admin/login"
+      title="Admin Login"
+      className="group fixed bottom-8 right-8 z-50 bg-primary text-white p-4 rounded-full shadow-lg hover:bg-primary-dark transition-all duration-300 transform hover:scale-110"
+      aria-label="Admin Login"
+    >
+      {/* FIX: Replaced non-existent `UserShield` icon with the `Shield` icon. */}
+      <Shield size={24} />
+      <span className="absolute bottom-1/2 translate-y-1/2 right-full mr-4 px-3 py-1.5 bg-gray-800 text-white text-xs font-semibold rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap pointer-events-none">
+        Admin Login
+      </span>
+    </Link>
   </div>
 );
 

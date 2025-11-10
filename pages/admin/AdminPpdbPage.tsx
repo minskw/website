@@ -536,7 +536,8 @@ const AdminPpdbPage: React.FC = () => {
                    <input 
                       type="checkbox"
                       checked={isAllSelected}
-                      ref={el => el && (el.indeterminate = isIndeterminate)}
+                      // Fix: The ref callback should not return a value.
+                      ref={el => { if (el) { el.indeterminate = isIndeterminate; } }}
                       onChange={handleSelectAll}
                       className="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary"
                     />
