@@ -67,8 +67,8 @@ const EventCalendarPage: React.FC = () => {
         );
 
         return filteredEvents
-            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-            .reduce((acc, event) => {
+            .sort((a: SchoolEvent, b: SchoolEvent) => new Date(a.date).getTime() - new Date(b.date).getTime())
+            .reduce<Record<string, SchoolEvent[]>>((acc, event) => {
                 const eventDate = new Date(`${event.date}T00:00:00`);
                 const month = eventDate.toLocaleString('id-ID', { month: 'long', year: 'numeric' });
                 if (!acc[month]) {
@@ -76,7 +76,7 @@ const EventCalendarPage: React.FC = () => {
                 }
                 acc[month].push(event);
                 return acc;
-            }, {} as Record<string, SchoolEvent[]>);
+            }, {});
     }, [selectedCategory, allEvents]);
 
 

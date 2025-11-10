@@ -112,7 +112,7 @@ const AdminNewsPage: React.FC = () => {
                 },
             });
 
-            const result = JSON.parse(response.text);
+            const result = JSON.parse(response.text.trim());
             
             if (currentArticle) {
                 setCurrentArticle({
