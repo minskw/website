@@ -51,7 +51,6 @@ const EventCalendarPage: React.FC = () => {
     const categories = useMemo(() => {
         const eventCategories = ['Semua', ...Array.from(new Set(allEvents.map(event => event.category)))];
         // Custom sort to put 'Hari Libur Nasional' last
-        // FIX: Explicitly type sort callback parameters to prevent 'unknown' type error.
         return eventCategories.sort((a: string, b: string) => {
             if (a === 'Semua') return -1;
             if (b === 'Semua') return 1;
@@ -69,8 +68,8 @@ const EventCalendarPage: React.FC = () => {
 
         return filteredEvents
             .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-            // FIX: Explicitly type the initial value of reduce to ensure correct type inference for groupedEvents.
-            .reduce((acc, event) => {
+            // FIX: Explicitly type the accumulator and initial value for `reduce` to ensure `groupedEvents` has the correct type.
+            .reduce((acc: Record<string, SchoolEvent[]>, event) => {
                 const eventDate = new Date(`${event.date}T00:00:00`);
                 const month = eventDate.toLocaleString('id-ID', { month: 'long', year: 'numeric' });
                 if (!acc[month]) {

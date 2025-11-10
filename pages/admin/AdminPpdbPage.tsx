@@ -66,9 +66,15 @@ const ApplicantDetailModal: React.FC<{ applicant: PpdbApplicant | null; onClose:
                     <div className="mb-6 border-b pb-4">
                         <h2 className="text-2xl font-bold font-poppins text-gray-800">{applicant.fullName}</h2>
                         <p className="text-gray-500">No. Pendaftaran: <span className="font-semibold text-gray-700">{applicant.registrationNumber}</span></p>
-                        <span className={`mt-2 inline-block px-3 py-1 text-sm font-medium rounded-full ${getStatusClass(applicant.status)}`}>
-                            {applicant.status}
-                        </span>
+                        <div className="mt-2 flex items-center flex-wrap gap-2">
+                            <span className={`inline-block px-3 py-1 text-sm font-medium rounded-full ${getStatusClass(applicant.status)}`}>
+                                Status: {applicant.status}
+                            </span>
+                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-sm font-medium rounded-full ${getAIVerificationStatusClass(applicant.aiVerificationStatus)}`}>
+                                <ShieldCheck size={14} />
+                                {applicant.aiVerificationStatus}
+                            </span>
+                        </div>
                     </div>
 
                     <div className="grid md:grid-cols-2 gap-x-8 gap-y-6">
@@ -376,6 +382,18 @@ const AdminPpdbPage: React.FC = () => {
     }
   };
 
+  const handleBulkAiVerify = () => {
+    if (window.confirm(`Tandai ${selectedIds.size} pendaftar sebagai 'Terverifikasi AI'?`)) {
+      setApplicants(prev =>
+        prev.map(app =>
+          selectedIds.has(app.id) ? { ...app, aiVerificationStatus: AIVerificationStatus.VERIFIED } : app
+        )
+      );
+      alert(`${selectedIds.size} pendaftar berhasil ditandai sebagai 'Terverifikasi AI'.`);
+      setSelectedIds(new Set());
+    }
+  };
+
   const handleBulkDelete = () => {
     if (window.confirm(`Apakah Anda yakin ingin menghapus ${selectedIds.size} pendaftar terpilih?`)) {
       setApplicants(prev => prev.filter(app => !selectedIds.has(app.id)));
@@ -428,6 +446,9 @@ const AdminPpdbPage: React.FC = () => {
                 ))}
             </div>
         </div>
+        <button onClick={handleBulkAiVerify} className="flex items-center gap-2 bg-teal-500 px-3 py-1.5 rounded-md hover:bg-teal-600 text-sm">
+            <ShieldCheck size={16} /> Verifikasi AI Terpilih
+        </button>
         <button onClick={handleBulkExport} className="flex items-center gap-2 bg-green-500 px-3 py-1.5 rounded-md hover:bg-green-600 text-sm">
             <Download size={16} /> Export Data
         </button>

@@ -173,17 +173,16 @@ const App: React.FC = () => {
               <Route path="kontak" element={<ContactPage />} />
             </Route>
 
-            {/* Admin Routes */}
-            <Route path="/admin">
-              <Route path="login" element={<AdminLoginPage />} />
-              <Route element={<AdminProtectedRoute><AdminLayout /></AdminProtectedRoute>}>
-                <Route path="dashboard" element={<AdminDashboardPage />} />
-                <Route path="ppdb" element={<AdminPpdbPage />} />
-                <Route path="berita" element={<AdminNewsPage />} />
-                <Route path="guru" element={<AdminTeachersPage />} />
-                <Route path="pengaturan" element={<AdminSettingsPage />} />
-                <Route index element={<Navigate to="dashboard" replace />} />
-              </Route>
+            {/* Admin Routes: Refactored for clarity and to fix potential routing issues */}
+            <Route path="/admin/login" element={<AdminLoginPage />} />
+            <Route element={<AdminProtectedRoute><AdminLayout /></AdminProtectedRoute>}>
+              <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+              <Route path="/admin/ppdb" element={<AdminPpdbPage />} />
+              <Route path="/admin/berita" element={<AdminNewsPage />} />
+              <Route path="/admin/guru" element={<AdminTeachersPage />} />
+              <Route path="/admin/pengaturan" element={<AdminSettingsPage />} />
+              {/* Redirect from /admin base path to dashboard */}
+              <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
             </Route>
 
             {/* Parent Portal Routes */}
