@@ -1,6 +1,8 @@
 
+
+
 import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Outlet, Navigate, useLocation } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Outlet, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 
 // Public Components
@@ -62,7 +64,8 @@ const AdminLayout = () => {
 };
 
 // Protected Route for Admin
-const ProtectedRoute: React.FC<{ children: JSX.Element }> = ({ children }) => {
+// FIX: Changed JSX.Element to React.ReactElement to resolve "Cannot find namespace 'JSX'" error.
+const ProtectedRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
     const { user, loading } = useAuth();
     const location = useLocation();
 
