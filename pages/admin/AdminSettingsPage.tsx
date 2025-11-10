@@ -1,340 +1,100 @@
-import React, { useState, useEffect } from 'react';
-import { SCHOOL_INFO } from '../../constants';
-import { SchoolEvent, HomepageContent } from '../../types';
-import { Info, Calendar, UserCheck, Save, PlusCircle, Edit, Trash2, X, Building, Flag, Eye, Home } from 'lucide-react';
-
-// Firebase imports
+import React, { useState, useEffect, FormEvent } from 'react';
+import { HomepageContent } from '../../types';
 import { db } from '../../services/firebase';
-import { collection, getDocs, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, query, orderBy } from "firebase/firestore";
-
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { Save, LoaderCircle } from 'lucide-react';
 
 const AdminSettingsPage: React.FC = () => {
-    const [activeTab, setActiveTab] = useState('beranda');
-    const [isLoading, setIsLoading] = useState(true);
-
-    // --- State for each tab ---
-    const [schoolInfo, setSchoolInfo] = useState(SCHOOL_INFO);
-    const [socialLinks, setSocialLinks] = useState({ facebook: '', instagram: '', youtube: '' });
-    const [profileContent, setProfileContent] = useState({
-        vision: '',
-        mission: '',
-        orgChartUrl: ''
-    });
-    const [schedule, setSchedule] = useState({ startDate: '', endDate: '', verificationDeadline: '', announcementDate: ''});
-    const [events, setEvents] = useState<SchoolEvent[]>([]);
     const [homepageContent, setHomepageContent] = useState<HomepageContent>({
         heroImageUrl: '',
         welcomeTitle: '',
         welcomeText: '',
-        welcomeImageUrl: ''
+        welcomeImageUrl: '',
     });
-    const [isEventModalOpen, setIsEventModalOpen] = useState(false);
-    const [currentEvent, setCurrentEvent] = useState<SchoolEvent | null>(null);
-    
-    // --- Firestore Refs ---
-    const settingsCollectionRef = collection(db, "settings");
-    const eventsCollectionRef = collection(db, "events");
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
 
-    // --- Data Fetching ---
     useEffect(() => {
-        const fetchData = async () => {
+        const fetchSettings = async () => {
             setIsLoading(true);
-            
-            // Fetch School Info
-            const schoolInfoDoc = await getDoc(doc(settingsCollectionRef, "schoolInfo"));
-            if (schoolInfoDoc.exists()) {
-                const data = schoolInfoDoc.data();
-                setSchoolInfo(prev => ({...prev, ...data.info}));
-                setSocialLinks(data.socialLinks);
+            const docRef = doc(db, 'settings', 'homepageContent');
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                setHomepageContent(docSnap.data() as HomepageContent);
             }
-
-             // Fetch Profile Content
-            const profileDoc = await getDoc(doc(settingsCollectionRef, "profileContent"));
-            if (profileDoc.exists()) {
-                setProfileContent(profileDoc.data() as any);
-            }
-
-            // Fetch PPDB Schedule
-            const scheduleDoc = await getDoc(doc(settingsCollectionRef, "ppdbSchedule"));
-            if (scheduleDoc.exists()) {
-                setSchedule(scheduleDoc.data() as any);
-            }
-            
-            // Fetch Homepage Content
-            const homepageDoc = await getDoc(doc(settingsCollectionRef, "homepageContent"));
-            if (homepageDoc.exists()) {
-                setHomepageContent(homepageDoc.data() as HomepageContent);
-            }
-
-            // Fetch Events
-            const eventsQuery = query(eventsCollectionRef, orderBy("date", "desc"));
-            const eventsSnapshot = await getDocs(eventsQuery);
-            setEvents(eventsSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as SchoolEvent)));
-
             setIsLoading(false);
         };
-        fetchData();
+        fetchSettings();
     }, []);
 
-
-    // --- Handlers ---
-    const handleSave = async (section: string) => {
-        try {
-            let docRef;
-            let dataToSave;
-
-            switch (section) {
-                case 'Informasi Umum':
-                    docRef = doc(settingsCollectionRef, "schoolInfo");
-                    dataToSave = { info: schoolInfo, socialLinks };
-                    break;
-                case 'Halaman Profil':
-                    docRef = doc(settingsCollectionRef, "profileContent");
-                    dataToSave = profileContent;
-                    break;
-                case 'Jadwal PPDB':
-                    docRef = doc(settingsCollectionRef, "ppdbSchedule");
-                    dataToSave = schedule;
-                    break;
-                case 'Pengaturan Beranda':
-                    docRef = doc(settingsCollectionRef, "homepageContent");
-                    dataToSave = homepageContent;
-                    break;
-                default:
-                    throw new Error("Invalid section");
-            }
-            
-            await setDoc(docRef, dataToSave);
-            alert(`Pengaturan untuk seksi '${section}' telah disimpan!`);
-        } catch (error) {
-            console.error("Error saving settings: ", error);
-            alert(`Gagal menyimpan pengaturan untuk '${section}'.`);
-        }
+    const handleHomepageSubmit = async (e: FormEvent) => {
+        e.preventDefault();
+        setIsSaving(true);
+        const docRef = doc(db, 'settings', 'homepageContent');
+        await setDoc(docRef, homepageContent);
+        setIsSaving(false);
+        alert('Pengaturan halaman utama berhasil disimpan!');
     };
     
-    const inputClass = "w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary bg-white text-gray-900";
-    const textareaClass = `${inputClass} min-h-[100px]`;
-
-    const openEventModal = (event: SchoolEvent | null = null) => {
-        setCurrentEvent(event ? { ...event } : {
-            id: '',
-            title: '',
-            date: '',
-            time: '',
-            location: '',
-            description: '',
-            category: 'Umum'
-        });
-        setIsEventModalOpen(true);
-    };
-
-    const closeEventModal = () => setIsEventModalOpen(false);
-
-    const handleSaveEvent = async () => {
-        if (!currentEvent) return;
-        const { id, ...eventData } = currentEvent;
-        if (id) { // Update
-            await updateDoc(doc(eventsCollectionRef, id), eventData);
-            setEvents(events.map(e => e.id === id ? currentEvent : e));
-        } else { // Create
-            const docRef = await addDoc(eventsCollectionRef, eventData);
-            setEvents([{...currentEvent, id: docRef.id}, ...events]);
-        }
-        closeEventModal();
-    };
-
-    const handleDeleteEvent = async (id: string) => {
-        if (window.confirm('Yakin ingin menghapus acara ini?')) {
-            await deleteDoc(doc(eventsCollectionRef, id));
-            setEvents(events.filter(e => e.id !== id));
-        }
-    };
-    
-    const eventCategories: SchoolEvent['category'][] = ['Akademik', 'Olahraga', 'Seni & Budaya', 'Umum'];
-
-    // --- Render Methods ---
-    const TABS = [
-        { id: 'beranda', label: 'Pengaturan Beranda', icon: <Home size={18} /> },
-        { id: 'umum', label: 'Informasi Umum', icon: <Info size={18} /> },
-        { id: 'profil', label: 'Halaman Profil', icon: <Building size={18} /> },
-        { id: 'ppdb', label: 'Jadwal PPDB', icon: <UserCheck size={18} /> },
-        { id: 'kalender', label: 'Kalender Kegiatan', icon: <Calendar size={18} /> },
-    ];
-
-    const renderHomepageSettings = () => (
-        <div className="space-y-6">
-            <div className="p-5 border rounded-lg">
-                <h3 className="text-lg font-bold text-gray-700 mb-4">Seksi Hero</h3>
-                <div>
-                    <label className="block text-sm font-medium">URL Gambar Latar (Hero)</label>
-                    <input type="url" value={homepageContent.heroImageUrl} onChange={e => setHomepageContent({...homepageContent, heroImageUrl: e.target.value})} className={inputClass} />
-                </div>
-            </div>
-            <div className="p-5 border rounded-lg">
-                <h3 className="text-lg font-bold text-gray-700 mb-4">Seksi Selamat Datang</h3>
-                <div className="space-y-4">
-                    <div><label className="block text-sm font-medium">Judul Selamat Datang</label><input type="text" value={homepageContent.welcomeTitle} onChange={e => setHomepageContent({...homepageContent, welcomeTitle: e.target.value})} className={inputClass} /></div>
-                    <div><label className="block text-sm font-medium">Teks Paragraf Selamat Datang</label><textarea value={homepageContent.welcomeText} onChange={e => setHomepageContent({...homepageContent, welcomeText: e.target.value})} className={textareaClass}></textarea></div>
-                    <div><label className="block text-sm font-medium">URL Gambar di samping teks</label><input type="url" value={homepageContent.welcomeImageUrl} onChange={e => setHomepageContent({...homepageContent, welcomeImageUrl: e.target.value})} className={inputClass} /></div>
-                </div>
-            </div>
-            <button onClick={() => handleSave('Pengaturan Beranda')} className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark font-semibold"><Save size={18} /> Simpan Perubahan</button>
-        </div>
-    );
-
-    const renderGeneralInfo = () => (
-        <div className="space-y-6">
-            <div className="p-5 border rounded-lg">
-                <h3 className="text-lg font-bold text-gray-700 mb-4">Informasi Kontak</h3>
-                <div className="grid md:grid-cols-2 gap-4">
-                    <div><label className="block text-sm font-medium">Nama Sekolah</label><input type="text" value={schoolInfo.name} onChange={e => setSchoolInfo({...schoolInfo, name: e.target.value})} className={inputClass} /></div>
-                    <div><label className="block text-sm font-medium">Moto</label><input type="text" value={schoolInfo.motto} onChange={e => setSchoolInfo({...schoolInfo, motto: e.target.value})} className={inputClass} /></div>
-                    <div><label className="block text-sm font-medium">Email</label><input type="email" value={schoolInfo.email} onChange={e => setSchoolInfo({...schoolInfo, email: e.target.value})} className={inputClass} /></div>
-                    <div><label className="block text-sm font-medium">Telepon</label><input type="tel" value={schoolInfo.phone} onChange={e => setSchoolInfo({...schoolInfo, phone: e.target.value})} className={inputClass} /></div>
-                    <div className="md:col-span-2"><label className="block text-sm font-medium">Alamat</label><textarea value={schoolInfo.address} onChange={e => setSchoolInfo({...schoolInfo, address: e.target.value})} className={textareaClass} /></div>
-                </div>
-            </div>
-            <div className="p-5 border rounded-lg">
-                <h3 className="text-lg font-bold text-gray-700 mb-4">Media Sosial</h3>
-                <div className="grid md:grid-cols-2 gap-4">
-                     <div><label className="block text-sm font-medium">URL Facebook</label><input type="url" value={socialLinks.facebook} onChange={e => setSocialLinks({...socialLinks, facebook: e.target.value})} className={inputClass} /></div>
-                     <div><label className="block text-sm font-medium">URL Instagram</label><input type="url" value={socialLinks.instagram} onChange={e => setSocialLinks({...socialLinks, instagram: e.target.value})} className={inputClass} /></div>
-                     <div><label className="block text-sm font-medium">URL YouTube</label><input type="url" value={socialLinks.youtube} onChange={e => setSocialLinks({...socialLinks, youtube: e.target.value})} className={inputClass} /></div>
-                </div>
-            </div>
-            <button onClick={() => handleSave('Informasi Umum')} className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark font-semibold"><Save size={18} /> Simpan Perubahan</button>
-        </div>
-    );
-    
-    const renderProfileSettings = () => (
-         <div className="space-y-6">
-            <div className="p-5 border rounded-lg">
-                <h3 className="text-lg font-bold text-gray-700 mb-4 flex items-center gap-2"><Eye className="text-secondary"/> Visi</h3>
-                <textarea value={profileContent.vision} onChange={e => setProfileContent({...profileContent, vision: e.target.value})} className={textareaClass} />
-            </div>
-            <div className="p-5 border rounded-lg">
-                <h3 className="text-lg font-bold text-gray-700 mb-4 flex items-center gap-2"><Flag className="text-secondary"/> Misi (pisahkan dengan baris baru)</h3>
-                <textarea value={profileContent.mission} onChange={e => setProfileContent({...profileContent, mission: e.target.value})} className={textareaClass} />
-            </div>
-            <div className="p-5 border rounded-lg">
-                <h3 className="text-lg font-bold text-gray-700 mb-4">Lainnya</h3>
-                <div><label className="block text-sm font-medium">URL Gambar Struktur Organisasi</label><input type="url" value={profileContent.orgChartUrl} onChange={e => setProfileContent({...profileContent, orgChartUrl: e.target.value})} className={inputClass} /></div>
-            </div>
-             <button onClick={() => handleSave('Halaman Profil')} className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark font-semibold"><Save size={18} /> Simpan Perubahan</button>
-        </div>
-    );
-
-    const renderPpdbSchedule = () => (
-        <div className="space-y-6">
-            <div className="p-5 border rounded-lg">
-                 <h3 className="text-lg font-bold text-gray-700 mb-4">Atur Jadwal PPDB</h3>
-                 <div className="grid md:grid-cols-2 gap-4">
-                    <div><label className="block text-sm font-medium">Tanggal Mulai Pendaftaran</label><input type="date" value={schedule.startDate} onChange={e => setSchedule({...schedule, startDate: e.target.value})} className={inputClass} /></div>
-                    <div><label className="block text-sm font-medium">Tanggal Selesai Pendaftaran</label><input type="date" value={schedule.endDate} onChange={e => setSchedule({...schedule, endDate: e.target.value})} className={inputClass} /></div>
-                    <div><label className="block text-sm font-medium">Batas Akhir Verifikasi</label><input type="date" value={schedule.verificationDeadline} onChange={e => setSchedule({...schedule, verificationDeadline: e.target.value})} className={inputClass} /></div>
-                    <div><label className="block text-sm font-medium">Tanggal Pengumuman</label><input type="date" value={schedule.announcementDate} onChange={e => setSchedule({...schedule, announcementDate: e.target.value})} className={inputClass} /></div>
-                 </div>
-            </div>
-            <button onClick={() => handleSave('Jadwal PPDB')} className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark font-semibold"><Save size={18} /> Simpan Jadwal</button>
-        </div>
-    );
-
-    const renderCalendarManagement = () => (
-        <div className="space-y-6">
-            <div className="p-5 border rounded-lg">
-                <div className="flex justify-between items-center mb-4">
-                     <h3 className="text-lg font-bold text-gray-700">Manajemen Acara Sekolah</h3>
-                     <button onClick={() => openEventModal()} className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark font-semibold"><PlusCircle size={18} /> Tambah Acara Baru</button>
-                </div>
-                <div className="overflow-x-auto">
-                     <table className="w-full text-sm text-left">
-                        <thead className="bg-gray-50">
-                            <tr>
-                                <th className="px-4 py-2">Tanggal</th>
-                                <th className="px-4 py-2">Nama Acara</th>
-                                <th className="px-4 py-2">Kategori</th>
-                                <th className="px-4 py-2 text-center">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {events.map(event => (
-                                <tr key={event.id} className="border-b hover:bg-gray-50">
-                                    <td className="px-4 py-2">{event.date}</td>
-                                    <td className="px-4 py-2 font-medium">{event.title}</td>
-                                    <td className="px-4 py-2">{event.category}</td>
-                                    <td className="px-4 py-2 text-center">
-                                        <button onClick={() => openEventModal(event)} className="text-blue-600 mr-4"><Edit size={16} /></button>
-                                        <button onClick={() => handleDeleteEvent(event.id)} className="text-red-600"><Trash2 size={16} /></button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            {isEventModalOpen && currentEvent && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
-                     <div className="bg-white rounded-lg shadow-xl w-full max-w-lg">
-                        <div className="p-4 border-b flex justify-between items-center">
-                            <h4 className="font-bold">{currentEvent.id ? 'Edit Acara' : 'Tambah Acara Baru'}</h4>
-                            <button onClick={closeEventModal}><X/></button>
-                        </div>
-                        <div className="p-4 space-y-3 max-h-[70vh] overflow-y-auto">
-                            <div><label className="text-sm">Nama Acara</label><input type="text" value={currentEvent.title} onChange={e => setCurrentEvent({...currentEvent, title: e.target.value})} className={inputClass} /></div>
-                            <div className="grid grid-cols-2 gap-3">
-                                <div><label className="text-sm">Tanggal</label><input type="date" value={currentEvent.date} onChange={e => setCurrentEvent({...currentEvent, date: e.target.value})} className={inputClass} /></div>
-                                <div><label className="text-sm">Waktu</label><input type="time" value={currentEvent.time} onChange={e => setCurrentEvent({...currentEvent, time: e.target.value})} className={inputClass} /></div>
-                            </div>
-                            <div><label className="text-sm">Lokasi</label><input type="text" value={currentEvent.location} onChange={e => setCurrentEvent({...currentEvent, location: e.target.value})} className={inputClass} /></div>
-                             <div><label className="text-sm">Kategori</label>
-                                <select value={currentEvent.category} onChange={e => setCurrentEvent({...currentEvent, category: e.target.value as SchoolEvent['category']})} className={`${inputClass} bg-white`}>
-                                    {eventCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                                </select>
-                            </div>
-                            <div><label className="text-sm">Deskripsi</label><textarea value={currentEvent.description} onChange={e => setCurrentEvent({...currentEvent, description: e.target.value})} className={textareaClass} /></div>
-                        </div>
-                        <div className="p-4 bg-gray-50 flex justify-end gap-3">
-                            <button onClick={closeEventModal} className="px-3 py-1 bg-gray-200 rounded">Batal</button>
-                            <button onClick={handleSaveEvent} className="px-3 py-1 bg-primary text-white rounded">Simpan</button>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-
-    const renderContent = () => {
-        if (isLoading) return <p className="text-center py-8">Memuat pengaturan...</p>;
-        switch (activeTab) {
-            case 'beranda': return renderHomepageSettings();
-            case 'umum': return renderGeneralInfo();
-            case 'profil': return renderProfileSettings();
-            case 'ppdb': return renderPpdbSchedule();
-            case 'kalender': return renderCalendarManagement();
-            default: return null;
-        }
+    if (isLoading) {
+        return <div className="flex justify-center py-8"><LoaderCircle className="animate-spin text-primary" size={32}/></div>;
     }
 
     return (
-        <div className="bg-white p-6 rounded-lg shadow-md">
+        <div>
             <h1 className="text-2xl font-bold text-gray-800 mb-6">Pengaturan Website</h1>
-            <div className="flex flex-wrap border-b border-gray-200 mb-6">
-                {TABS.map(tab => (
-                    <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
-                        className={`flex items-center gap-2 px-4 py-3 font-semibold transition-colors ${
-                            activeTab === tab.id
-                                ? 'border-b-2 border-primary text-primary'
-                                : 'text-gray-500 hover:text-primary'
-                        }`}
-                    >
-                        {tab.icon} {tab.label}
-                    </button>
-                ))}
-            </div>
             
-            <div>{renderContent()}</div>
+            <div className="bg-white p-6 rounded-lg shadow-md">
+                <h2 className="text-xl font-bold text-gray-700 mb-4 border-b pb-2">Halaman Utama</h2>
+                <form onSubmit={handleHomepageSubmit} className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">URL Gambar Hero</label>
+                        <input 
+                            type="text" 
+                            value={homepageContent.heroImageUrl}
+                            onChange={e => setHomepageContent({...homepageContent, heroImageUrl: e.target.value})}
+                            className="w-full mt-1 p-2 border rounded-md"
+                        />
+                         <p className="text-xs text-gray-500 mt-1">URL gambar besar yang tampil di bagian atas halaman utama.</p>
+                    </div>
+                     <div>
+                        <label className="block text-sm font-medium text-gray-700">Judul Sambutan</label>
+                        <input 
+                            type="text" 
+                            value={homepageContent.welcomeTitle}
+                            onChange={e => setHomepageContent({...homepageContent, welcomeTitle: e.target.value})}
+                            className="w-full mt-1 p-2 border rounded-md"
+                        />
+                    </div>
+                     <div>
+                        <label className="block text-sm font-medium text-gray-700">Teks Sambutan</label>
+                        <textarea 
+                            rows={4}
+                            value={homepageContent.welcomeText}
+                            onChange={e => setHomepageContent({...homepageContent, welcomeText: e.target.value})}
+                            className="w-full mt-1 p-2 border rounded-md"
+                        />
+                    </div>
+                     <div>
+                        <label className="block text-sm font-medium text-gray-700">URL Gambar Sambutan</label>
+                        <input 
+                            type="text" 
+                            value={homepageContent.welcomeImageUrl}
+                            onChange={e => setHomepageContent({...homepageContent, welcomeImageUrl: e.target.value})}
+                            className="w-full mt-1 p-2 border rounded-md"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">URL gambar yang tampil di samping teks sambutan.</p>
+                    </div>
+                    <div className="text-right">
+                        <button type="submit" disabled={isSaving} className="inline-flex items-center gap-2 bg-primary text-white font-semibold px-4 py-2 rounded-lg hover:bg-primary-dark transition-colors disabled:bg-gray-400">
+                             {isSaving ? <LoaderCircle className="animate-spin" size={18} /> : <Save size={18} />}
+                             {isSaving ? 'Menyimpan...' : 'Simpan Perubahan'}
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            {/* Tambahkan form pengaturan lain di sini jika diperlukan, misal: Info Sekolah, Jadwal PPDB, dll. */}
         </div>
     );
 };

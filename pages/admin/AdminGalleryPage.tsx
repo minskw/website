@@ -1,20 +1,15 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect, FormEvent } from 'react';
 import { GalleryImage } from '../../types';
-import { PlusCircle, Edit, Trash2, X, Search } from 'lucide-react';
-
-// Firebase imports
 import { db } from '../../services/firebase';
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy } from "firebase/firestore";
+import { collection, getDocs, addDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
+import { PlusCircle, Trash2, X, LoaderCircle } from 'lucide-react';
 
 const AdminGalleryPage: React.FC = () => {
     const [images, setImages] = useState<GalleryImage[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [currentImage, setCurrentImage] = useState<GalleryImage | null>(null);
-    const [searchTerm, setSearchTerm] = useState('');
-
+    
     const galleryCollectionRef = collection(db, "gallery");
-    const imageCategories: GalleryImage['category'][] = ['Kegiatan', 'Prestasi', 'Ekstrakurikuler', 'Akademik'];
 
     useEffect(() => {
         const getImages = async () => {
@@ -28,164 +23,76 @@ const AdminGalleryPage: React.FC = () => {
         getImages();
     }, []);
 
-    const filteredImages = useMemo(() => {
-        return images.filter(image =>
-            image.caption.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            image.category.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-    }, [images, searchTerm]);
-
-    const openModal = (image: GalleryImage | null = null) => {
-        setCurrentImage(image ? { ...image } : {
-            id: '', // Handled by Firestore
-            imageUrl: '',
-            caption: '',
-            category: 'Kegiatan',
-        });
-        setIsModalOpen(true);
-    };
-
-    const closeModal = () => {
-        setIsModalOpen(false);
-        setCurrentImage(null);
-    };
-
-    const handleSave = async () => {
-        if (!currentImage) return;
-        
-        if (!currentImage.imageUrl || !currentImage.caption) {
-            alert('URL Gambar dan Keterangan harus diisi.');
-            return;
-        }
-
-        const { id, ...imageData } = currentImage;
-
-        if (id) { // Editing existing image
-            const imageDoc = doc(db, "gallery", id);
-            await updateDoc(imageDoc, imageData);
-            setImages(images.map(img => img.id === id ? currentImage : img));
-        } else { // Adding new image
-            const docRef = await addDoc(galleryCollectionRef, imageData);
-            setImages([...images, { ...currentImage, id: docRef.id }]);
-        }
-        closeModal();
-    };
-
     const handleDelete = async (id: string) => {
-        if (window.confirm('Apakah Anda yakin ingin menghapus gambar ini?')) {
+        if (window.confirm("Apakah Anda yakin ingin menghapus foto ini?")) {
             const imageDoc = doc(db, "gallery", id);
             await deleteDoc(imageDoc);
             setImages(images.filter(img => img.id !== id));
         }
     };
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        if (!currentImage) return;
-        const { name, value } = e.target;
-        setCurrentImage({ ...currentImage, [name]: value });
-    };
     
-    const renderModal = () => {
-        if (!isModalOpen || !currentImage) return null;
-        
-        const isEditing = !!currentImage.id;
+    const ImageForm: React.FC<{ onSave: () => void; onCancel: () => void; }> = ({ onSave, onCancel }) => {
+        const [formData, setFormData] = useState({
+            imageUrl: '',
+            caption: '',
+            category: 'Kegiatan' as GalleryImage['category'],
+        });
+
+        const handleSubmit = async (e: FormEvent) => {
+            e.preventDefault();
+            await addDoc(galleryCollectionRef, formData);
+            onSave();
+        };
 
         return (
-            <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-start p-4 overflow-y-auto">
-                <div className="bg-white rounded-lg shadow-xl w-full max-w-xl my-8">
-                    <div className="p-6 border-b flex justify-between items-center">
-                        <h3 className="text-xl font-bold font-poppins text-gray-800">{isEditing ? 'Edit Gambar Galeri' : 'Tambah Gambar Baru'}</h3>
-                        <button onClick={closeModal} className="text-gray-500 hover:text-gray-800"><X size={24}/></button>
+             <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
+                <div className="bg-white rounded-lg shadow-xl w-full max-w-lg">
+                     <div className="p-6 border-b flex justify-between items-center">
+                        <h3 className="text-xl font-bold font-poppins text-gray-800">Tambah Foto Baru</h3>
+                        <button onClick={onCancel} className="text-gray-500 hover:text-gray-800"><X size={24}/></button>
                     </div>
-                    <div className="p-6 space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium">URL Gambar</label>
-                            <input type="url" name="imageUrl" value={currentImage.imageUrl} onChange={handleChange} className="mt-1 w-full px-3 py-2 border rounded-md" placeholder="https://..."/>
-                            <p className="text-xs text-gray-500 mt-1">Tempelkan link gambar yang dapat diakses publik (misal: dari Google Drive, Imgur).</p>
+                    <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                        <div><label className="text-sm font-medium">URL Gambar</label><input type="text" value={formData.imageUrl} onChange={e => setFormData({...formData, imageUrl: e.target.value})} className="w-full mt-1 p-2 border rounded" required /></div>
+                        <div><label className="text-sm font-medium">Keterangan (Caption)</label><input type="text" value={formData.caption} onChange={e => setFormData({...formData, caption: e.target.value})} className="w-full mt-1 p-2 border rounded" required /></div>
+                        <div><label className="text-sm font-medium">Kategori</label><select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value as any})} className="w-full mt-1 p-2 border rounded"><option>Kegiatan</option><option>Prestasi</option><option>Ekstrakurikuler</option><option>Akademik</option></select></div>
+                        <div className="p-6 bg-gray-50 rounded-b-lg text-right space-x-3 -m-6 mt-4">
+                            <button type="button" onClick={onCancel} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">Batal</button>
+                            <button type="submit" className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark">Simpan</button>
                         </div>
-                         <div>
-                            <label className="block text-sm font-medium">Keterangan (Caption)</label>
-                            <input type="text" name="caption" value={currentImage.caption} onChange={handleChange} className="mt-1 w-full px-3 py-2 border rounded-md" />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium">Kategori</label>
-                            <select name="category" value={currentImage.category} onChange={handleChange} className="mt-1 w-full px-3 py-2 border rounded-md bg-white">
-                                {imageCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                            </select>
-                        </div>
-                    </div>
-                     <div className="p-6 bg-gray-50 rounded-b-lg flex justify-end gap-3">
-                        <button onClick={closeModal} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">Batal</button>
-                        <button onClick={handleSave} className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark">Simpan</button>
-                    </div>
+                    </form>
                 </div>
             </div>
         );
-    }
-    
+    };
+
     return (
         <div className="bg-white p-6 rounded-lg shadow-md">
-            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
+            <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold text-gray-800">Manajemen Galeri</h1>
-                <button onClick={() => openModal()} className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark transition-colors font-semibold w-full sm:w-auto justify-center">
-                    <PlusCircle size={18} /> Tambah Gambar
+                 <button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2 bg-primary text-white font-semibold px-4 py-2 rounded-lg hover:bg-primary-dark transition-colors">
+                    <PlusCircle size={18} /> Tambah Foto
                 </button>
             </div>
             
-             <div className="mb-4">
-                 <div className="relative w-full max-w-sm">
-                    <input
-                        type="text"
-                        placeholder="Cari berdasarkan keterangan..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+            {isLoading ? (
+                 <div className="flex justify-center py-8"><LoaderCircle className="animate-spin text-primary" size={32}/></div>
+            ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    {images.map(image => (
+                        <div key={image.id} className="group relative border rounded-lg overflow-hidden shadow">
+                             <img src={image.imageUrl} alt={image.caption} className="w-full h-40 object-cover" />
+                             <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-60 transition-all duration-300 flex flex-col justify-between p-2">
+                                <p className="text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity">{image.caption}</p>
+                                <button onClick={() => handleDelete(image.id)} className="self-end bg-red-600 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 hover:bg-red-700 transition-opacity">
+                                    <Trash2 size={16}/>
+                                </button>
+                             </div>
+                        </div>
+                    ))}
                 </div>
-            </div>
-
-            <div className="overflow-x-auto">
-                 {isLoading ? (
-                    <p className="text-center py-8">Memuat data galeri...</p>
-                ) : (
-                <table className="w-full text-sm text-left text-gray-500">
-                    <thead className="text-xs text-gray-700 uppercase bg-gray-50">
-                        <tr>
-                            <th className="px-6 py-3">Gambar</th>
-                            <th className="px-6 py-3">Keterangan</th>
-                            <th className="px-6 py-3">Kategori</th>
-                            <th className="px-6 py-3 text-center">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {filteredImages.map(image => (
-                             <tr key={image.id} className="bg-white border-b hover:bg-gray-50">
-                                <td className="px-6 py-4">
-                                    <img src={image.imageUrl} alt={image.caption} className="w-24 h-16 object-cover rounded-md" />
-                                </td>
-                                <td className="px-6 py-4 font-medium text-gray-900">{image.caption}</td>
-                                <td className="px-6 py-4">{image.category}</td>
-                                <td className="px-6 py-4 text-center">
-                                    <div className="flex justify-center gap-4">
-                                        <button onClick={() => openModal(image)} className="text-blue-600 hover:text-blue-800" title="Edit"><Edit size={18} /></button>
-                                        <button onClick={() => handleDelete(image.id)} className="text-red-600 hover:text-red-800" title="Hapus"><Trash2 size={18} /></button>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
-                        {filteredImages.length === 0 && (
-                             <tr>
-                                <td colSpan={4} className="text-center py-8 text-gray-500">
-                                    Tidak ada gambar yang ditemukan.
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
-                 )}
-            </div>
-            {renderModal()}
+            )}
+            
+            {isModalOpen && <ImageForm onSave={() => { setIsModalOpen(false); window.location.reload(); }} onCancel={() => setIsModalOpen(false)} />}
         </div>
     );
 };

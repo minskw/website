@@ -1,186 +1,107 @@
----
----
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect, FormEvent } from 'react';
 import { NewsArticle } from '../../types';
-import { PlusCircle, Edit, Trash2, X, Search } from 'lucide-react';
-
-// Firebase imports
 import { db } from '../../services/firebase';
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy } from "firebase/firestore";
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
+import { PlusCircle, Edit, Trash2, X, LoaderCircle } from 'lucide-react';
 
 const AdminNewsPage: React.FC = () => {
     const [news, setNews] = useState<NewsArticle[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [currentArticle, setCurrentArticle] = useState<NewsArticle | null>(null);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [filterCategory, setFilterCategory] = useState('Semua');
+    const [editingArticle, setEditingArticle] = useState<NewsArticle | null>(null);
 
     const newsCollectionRef = collection(db, "news");
 
     useEffect(() => {
         const getNews = async () => {
             setIsLoading(true);
-            const data = await getDocs(query(newsCollectionRef));
+            const q = query(newsCollectionRef, orderBy("date", "desc"));
+            const data = await getDocs(q);
             const newsData = data.docs.map(doc => ({ ...doc.data(), id: doc.id } as NewsArticle));
-            // Sort client-side as date format in DB might not be reliable for ordering
-            setNews(newsData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+            setNews(newsData);
             setIsLoading(false);
         };
         getNews();
     }, []);
 
-    const filteredNews = useMemo(() => {
-        return news.filter(article => {
-            const matchesSearch = article.title.toLowerCase().includes(searchTerm.toLowerCase());
-            const matchesCategory = filterCategory === 'Semua' || article.category === filterCategory;
-            return matchesSearch && matchesCategory;
-        });
-    }, [news, searchTerm, filterCategory]);
-
     const openModal = (article: NewsArticle | null = null) => {
-        setCurrentArticle(article ? { ...article } : {
-            id: '', // Handled by Firestore
-            title: '',
-            category: 'Kegiatan',
-            date: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
-            imageUrl: 'https://picsum.photos/seed/news' + Date.now() + '/800/600',
-            excerpt: '',
-            content: '',
-        });
+        setEditingArticle(article);
         setIsModalOpen(true);
     };
 
     const closeModal = () => {
+        setEditingArticle(null);
         setIsModalOpen(false);
-        setCurrentArticle(null);
-    };
-
-    const handleSave = async () => {
-        if (!currentArticle) return;
-        
-        if (!currentArticle.title || !currentArticle.excerpt || !currentArticle.content) {
-            alert('Judul, Kutipan, dan Konten harus diisi.');
-            return;
-        }
-
-        const { id, ...articleData } = currentArticle;
-
-        if (id) { // Editing existing article
-            const articleDoc = doc(db, "news", id);
-            await updateDoc(articleDoc, articleData);
-            setNews(news.map(n => n.id === id ? currentArticle : n));
-        } else { // Adding new article
-            const docRef = await addDoc(newsCollectionRef, articleData);
-            setNews([{ ...currentArticle, id: docRef.id }, ...news]);
-        }
-        closeModal();
     };
 
     const handleDelete = async (id: string) => {
-        if (window.confirm('Apakah Anda yakin ingin menghapus berita ini?')) {
+        if (window.confirm("Apakah Anda yakin ingin menghapus berita ini?")) {
             const articleDoc = doc(db, "news", id);
             await deleteDoc(articleDoc);
             setNews(news.filter(n => n.id !== id));
         }
     };
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-        if (!currentArticle) return;
-        const { name, value } = e.target;
-        setCurrentArticle({ ...currentArticle, [name]: value });
-    };
+    const NewsForm: React.FC<{ article: NewsArticle | null; onSave: () => void; onCancel: () => void; }> = ({ article, onSave, onCancel }) => {
+        const [formData, setFormData] = useState({
+            title: article?.title || '',
+            category: article?.category || 'Kegiatan',
+            date: article?.date || new Date().toISOString().split('T')[0],
+            imageUrl: article?.imageUrl || '',
+            excerpt: article?.excerpt || '',
+            content: article?.content || '',
+        });
 
-    const renderModal = () => {
-        if (!isModalOpen || !currentArticle) return null;
-        
-        const isEditing = !!currentArticle.id;
+        const handleSubmit = async (e: FormEvent) => {
+            e.preventDefault();
+            if (article) {
+                // Update
+                const articleDoc = doc(db, "news", article.id);
+                await updateDoc(articleDoc, formData);
+            } else {
+                // Create
+                await addDoc(newsCollectionRef, formData);
+            }
+            onSave();
+        };
 
         return (
-            <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-start p-4 overflow-y-auto">
-                <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl my-8">
+            <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
+                <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl">
                     <div className="p-6 border-b flex justify-between items-center">
-                        <h3 className="text-xl font-bold font-poppins text-gray-800">{isEditing ? 'Edit Berita' : 'Tambah Berita Baru'}</h3>
-                        <button onClick={closeModal} className="text-gray-500 hover:text-gray-800"><X size={24}/></button>
+                        <h3 className="text-xl font-bold font-poppins text-gray-800">{article ? 'Edit Berita' : 'Tambah Berita Baru'}</h3>
+                        <button onClick={onCancel} className="text-gray-500 hover:text-gray-800"><X size={24}/></button>
                     </div>
-                    <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-                        <div>
-                            <label className="block text-sm font-medium">Judul Berita</label>
-                            <input type="text" name="title" value={currentArticle.title} onChange={handleChange} className="mt-1 w-full px-3 py-2 border rounded-md" />
+                    <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+                        <div><label className="text-sm font-medium">Judul</label><input type="text" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="w-full mt-1 p-2 border rounded" required /></div>
+                        <div><label className="text-sm font-medium">Kategori</label><select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value as any})} className="w-full mt-1 p-2 border rounded"><option>Kegiatan</option><option>Prestasi</option><option>Pengumuman</option></select></div>
+                        <div><label className="text-sm font-medium">Tanggal</label><input type="date" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} className="w-full mt-1 p-2 border rounded" required/></div>
+                        <div><label className="text-sm font-medium">URL Gambar</label><input type="text" value={formData.imageUrl} onChange={e => setFormData({...formData, imageUrl: e.target.value})} className="w-full mt-1 p-2 border rounded" required/></div>
+                        <div><label className="text-sm font-medium">Ringkasan (Excerpt)</label><textarea value={formData.excerpt} onChange={e => setFormData({...formData, excerpt: e.target.value})} className="w-full mt-1 p-2 border rounded" rows={3} required></textarea></div>
+                        <div><label className="text-sm font-medium">Konten Lengkap (HTML)</label><textarea value={formData.content} onChange={e => setFormData({...formData, content: e.target.value})} className="w-full mt-1 p-2 border rounded" rows={6} required></textarea></div>
+                    
+                        <div className="p-6 bg-gray-50 rounded-b-lg text-right space-x-3 -m-6 mt-4">
+                            <button type="button" onClick={onCancel} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">Batal</button>
+                            <button type="submit" className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark">Simpan</button>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium">Kategori</label>
-                                <select name="category" value={currentArticle.category} onChange={handleChange} className="mt-1 w-full px-3 py-2 border rounded-md bg-white">
-                                    <option value="Kegiatan">Kegiatan</option>
-                                    <option value="Pengumuman">Pengumuman</option>
-                                    <option value="Prestasi">Prestasi</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium">Tanggal Publikasi</label>
-                                <input type="text" name="date" value={currentArticle.date} onChange={handleChange} placeholder="e.g. 21 Juli 2024" className="mt-1 w-full px-3 py-2 border rounded-md" />
-                            </div>
-                        </div>
-                         <div>
-                            <label className="block text-sm font-medium">Image URL</label>
-                            <input type="text" name="imageUrl" value={currentArticle.imageUrl} onChange={handleChange} className="mt-1 w-full px-3 py-2 border rounded-md" />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium">Kutipan Singkat (Excerpt)</label>
-                            <textarea name="excerpt" value={currentArticle.excerpt} onChange={handleChange} rows={3} className="mt-1 w-full px-3 py-2 border rounded-md"></textarea>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium">Konten Lengkap (HTML didukung)</label>
-                            <textarea name="content" value={currentArticle.content} onChange={handleChange} rows={10} className="mt-1 w-full px-3 py-2 border rounded-md"></textarea>
-                        </div>
-                    </div>
-                     <div className="p-6 bg-gray-50 rounded-b-lg flex justify-end gap-3">
-                        <button onClick={closeModal} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">Batal</button>
-                        <button onClick={handleSave} className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark">Simpan Berita</button>
-                    </div>
+                    </form>
                 </div>
             </div>
         );
-    }
-    
+    };
+
     return (
         <div className="bg-white p-6 rounded-lg shadow-md">
-            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
+            <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold text-gray-800">Manajemen Berita</h1>
-                <button onClick={() => openModal()} className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark transition-colors font-semibold w-full sm:w-auto justify-center">
+                <button onClick={() => openModal()} className="flex items-center gap-2 bg-primary text-white font-semibold px-4 py-2 rounded-lg hover:bg-primary-dark transition-colors">
                     <PlusCircle size={18} /> Tambah Berita
                 </button>
             </div>
             
-            <div className="flex flex-col sm:flex-row gap-4 mb-4">
-                 <div className="relative w-full sm:w-auto sm:max-w-sm">
-                    <input
-                        type="text"
-                        placeholder="Cari judul berita..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                </div>
-                <div className="relative w-full sm:w-auto">
-                    <select
-                        value={filterCategory}
-                        onChange={(e) => setFilterCategory(e.target.value)}
-                        className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white appearance-none"
-                    >
-                        <option value="Semua">Semua Kategori</option>
-                        <option value="Kegiatan">Kegiatan</option>
-                        <option value="Pengumuman">Pengumuman</option>
-                        <option value="Prestasi">Prestasi</option>
-                    </select>
-                </div>
-            </div>
-
             <div className="overflow-x-auto">
                  {isLoading ? (
-                    <p className="text-center py-8">Memuat data berita...</p>
+                    <div className="flex justify-center py-8"><LoaderCircle className="animate-spin text-primary" size={32}/></div>
                 ) : (
                 <table className="w-full text-sm text-left text-gray-500">
                     <thead className="text-xs text-gray-700 uppercase bg-gray-50">
@@ -192,31 +113,24 @@ const AdminNewsPage: React.FC = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {filteredNews.map(article => (
-                             <tr key={article.id} className="bg-white border-b hover:bg-gray-50">
+                        {news.map(article => (
+                            <tr key={article.id} className="bg-white border-b hover:bg-gray-50">
                                 <td className="px-6 py-4 font-medium text-gray-900">{article.title}</td>
                                 <td className="px-6 py-4">{article.category}</td>
                                 <td className="px-6 py-4">{article.date}</td>
                                 <td className="px-6 py-4 text-center">
-                                    <div className="flex justify-center gap-4">
-                                        <button onClick={() => openModal(article)} className="text-blue-600 hover:text-blue-800" title="Edit"><Edit size={18} /></button>
-                                        <button onClick={() => handleDelete(article.id)} className="text-red-600 hover:text-red-800" title="Hapus"><Trash2 size={18} /></button>
+                                    <div className="flex items-center justify-center gap-3">
+                                        <button onClick={() => openModal(article)} title="Edit" className="text-blue-600 hover:text-blue-800"><Edit size={18} /></button>
+                                        <button onClick={() => handleDelete(article.id)} title="Hapus" className="text-red-600 hover:text-red-800"><Trash2 size={18} /></button>
                                     </div>
                                 </td>
                             </tr>
                         ))}
-                        {filteredNews.length === 0 && (
-                             <tr>
-                                <td colSpan={4} className="text-center py-8 text-gray-500">
-                                    Tidak ada berita yang ditemukan.
-                                </td>
-                            </tr>
-                        )}
                     </tbody>
                 </table>
                  )}
             </div>
-            {renderModal()}
+            {isModalOpen && <NewsForm article={editingArticle} onSave={() => { closeModal(); window.location.reload(); }} onCancel={closeModal} />}
         </div>
     );
 };
