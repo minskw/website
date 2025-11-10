@@ -2,14 +2,14 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 
-// Your web app's Firebase configuration
+// Konfigurasi Firebase untuk proyek website-minskw
 const firebaseConfig = {
-  apiKey: "AIzaSyBeAB2Zrxh-YGJxS-S5DxIR1daknZg9E5I",
-  authDomain: "min-singkawang-website.firebaseapp.com",
-  projectId: "min-singkawang-website",
-  storageBucket: "min-singkawang-website.appspot.com",
-  messagingSenderId: "26160860019",
-  appId: "1:26160860019:web:c6390fba26af450bc59306"
+  apiKey: "AIzaSyDeeKAGFxCxpvbrlTF8ia956Z2JIQyT_g8",
+  authDomain: "website-minskw.firebaseapp.com",
+  projectId: "website-minskw",
+  storageBucket: "website-minskw.appspot.com",
+  messagingSenderId: "950097325487",
+  appId: "1:950097325487:web:71085e538d08df7b98d35a"
 };
 
 // Initialize Firebase
