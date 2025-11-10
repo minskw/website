@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { db } from '../../services/firebase';
 import { collection, doc, updateDoc, query, orderBy, onSnapshot } from 'firebase/firestore';
@@ -6,14 +7,10 @@ import { Bot, LoaderCircle, ShieldCheck, ShieldAlert } from 'lucide-react';
 import { GoogleGenAI } from '@google/genai';
 
 let ai: GoogleGenAI | null = null;
-if (process.env.API_KEY) {
-  try {
-    ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  } catch (error) {
-    console.error("Failed to initialize GoogleGenAI. Make sure API_KEY is configured.", error);
-  }
-} else {
-  console.warn("API_KEY environment variable is not set. AI features will be disabled.");
+try {
+  ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+} catch (error) {
+  console.error("Failed to initialize GoogleGenAI. Make sure API_KEY is configured.", error);
 }
 
 const getStatusColor = (status: PpdbStatus) => {
@@ -26,11 +23,15 @@ const getStatusColor = (status: PpdbStatus) => {
     }
 };
 
-const getAIVerificationIcon = (status: AIVerificationStatus) => {
-    switch(status) {
-        case AIVerificationStatus.VERIFIED: return <span title="Terverifikasi AI"><ShieldCheck className="text-green-500" /></span>;
-        case AIVerificationStatus.MANUAL_REVIEW: return <span title="Perlu Review Manual"><ShieldAlert className="text-yellow-500" /></span>;
-        default: return null;
+const AIVerificationCell: React.FC<{ status: AIVerificationStatus; notes?: string }> = ({ status, notes }) => {
+    switch (status) {
+        case AIVerificationStatus.VERIFIED:
+            return <span className="flex items-center justify-center gap-1.5 text-green-600" title={notes || 'Terverifikasi oleh AI'}><ShieldCheck size={16} /> Terverifikasi</span>;
+        case AIVerificationStatus.MANUAL_REVIEW:
+            return <span className="flex items-center justify-center gap-1.5 text-yellow-600" title={notes || 'Perlu tinjauan manual'}><ShieldAlert size={16} /> Perlu Review</span>;
+        case AIVerificationStatus.NOT_CHECKED:
+        default:
+            return <span className="text-gray-500">Belum Dicek</span>;
     }
 };
 
@@ -138,7 +139,9 @@ const AdminPpdbPage: React.FC = () => {
                                         {app.status}
                                     </span>
                                 </td>
-                                <td className="py-3 px-4 text-center">{getAIVerificationIcon(app.aiVerificationStatus)}</td>
+                                <td className="py-3 px-4 text-center">
+                                    <AIVerificationCell status={app.aiVerificationStatus} notes={app.aiVerificationNotes} />
+                                </td>
                                 <td className="py-3 px-4 flex items-center gap-2">
                                     <button
                                         onClick={() => handleAIVerify(app)}

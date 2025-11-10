@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, FormEvent } from 'react';
 import { db } from '../../services/firebase';
 import { collection, doc, addDoc, updateDoc, deleteDoc, query, orderBy, onSnapshot } from 'firebase/firestore';
@@ -7,14 +8,10 @@ import { GoogleGenAI, Type } from '@google/genai';
 
 // Initialize AI client
 let ai: GoogleGenAI | null = null;
-if (process.env.API_KEY) {
-  try {
-    ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  } catch (error) {
-    console.error("Failed to initialize GoogleGenAI. Make sure API_KEY is configured.", error);
-  }
-} else {
-  console.warn("API_KEY environment variable is not set. AI features will be disabled.");
+try {
+  ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+} catch (error) {
+  console.error("Failed to initialize GoogleGenAI. Make sure API_KEY is configured.", error);
 }
 
 type NewsFormData = Omit<NewsArticle, 'id'>;
@@ -48,7 +45,11 @@ const NewsFormModal: React.FC<{
     };
 
     const handleGenerateContent = async () => {
-        if (!ai || !aiPrompt) {
+        if (!ai) {
+            alert("Layanan AI tidak tersedia. Pastikan API Key sudah dikonfigurasi.");
+            return;
+        }
+        if (!aiPrompt) {
             alert("Silakan masukkan topik untuk AI.");
             return;
         }
