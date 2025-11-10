@@ -1,6 +1,8 @@
+// Import React and Lucide icons
 import React from 'react';
-import { Home, Info, Newspaper, Image, Users, GraduationCap, Phone, LayoutDashboard, UserCheck, Settings, PenSquare, BookUser } from 'lucide-react';
+import { Home, Info, Newspaper, Image, Users, GraduationCap, Phone, LayoutDashboard, UserCheck, Settings, PenSquare, BookUser, DatabaseZap } from 'lucide-react';
 
+// School Information Constants
 export const SCHOOL_INFO = {
   name: 'MIN SINGKAWANG',
   logo: 'https://i.imgur.com/ruwOS0c.jpeg',
@@ -13,6 +15,7 @@ export const SCHOOL_INFO = {
   founded: 1982,
 };
 
+// Public Navigation Links
 export const NAV_LINKS = [
   { name: 'Beranda', href: '/' },
   { name: 'Profil', href: '/profil' },
@@ -24,14 +27,17 @@ export const NAV_LINKS = [
   { name: 'Portal Wali Murid', href: '/portal/login' },
 ];
 
+// Admin Navigation Links
 export const ADMIN_NAV_LINKS = [
     { name: 'Dashboard', href: '/admin/dashboard', icon: <LayoutDashboard size={20}/> },
     { name: 'Manajemen PPDB', href: '/admin/ppdb', icon: <UserCheck size={20}/> },
     { name: 'Manajemen Berita', href: '/admin/berita', icon: <Newspaper size={20}/> },
     { name: 'Data Guru', href: '/admin/guru', icon: <Users size={20}/> },
     { name: 'Pengaturan Website', href: '/admin/pengaturan', icon: <Settings size={20}/> },
+    { name: 'Setup Awal', href: '/admin/setup', icon: <DatabaseZap size={20}/> },
 ]
 
+// Social Media Links
 export const SOCIAL_LINKS = {
   facebook: 'https://facebook.com',
   instagram: 'https://instagram.com',

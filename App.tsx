@@ -4,7 +4,6 @@ import { HashRouter, Routes, Route, Navigate, Outlet, useLocation, Link } from '
 import { AuthProvider, AuthContext } from './hooks/useAuth';
 import { ParentAuthProvider, ParentAuthContext } from './hooks/useParentAuth';
 import { SCHOOL_INFO } from './constants';
-// FIX: Replaced non-existent `UserShield` icon from `lucide-react` with the `Shield` icon.
 import { LogOut, Wallet, LayoutDashboard, Shield } from 'lucide-react';
 
 import Header from './components/common/Header';
@@ -26,6 +25,7 @@ import AdminPpdbPage from './pages/admin/AdminPpdbPage';
 import AdminNewsPage from './pages/admin/AdminNewsPage';
 import AdminTeachersPage from './pages/admin/AdminTeachersPage';
 import AdminSettingsPage from './pages/admin/AdminSettingsPage';
+import AdminSetupPage from './pages/admin/AdminSetupPage'; // Import the new setup page
 
 import ParentLoginPage from './pages/portal/ParentLoginPage';
 import ParentDashboardPage from './pages/portal/ParentDashboardPage';
@@ -45,7 +45,6 @@ const PublicLayout: React.FC = () => (
       className="group fixed bottom-8 right-8 z-50 bg-primary text-white p-4 rounded-full shadow-lg hover:bg-primary-dark transition-all duration-300 transform hover:scale-110"
       aria-label="Admin Login"
     >
-      {/* FIX: Replaced non-existent `UserShield` icon with the `Shield` icon. */}
       <Shield size={24} />
       <span className="absolute bottom-1/2 translate-y-1/2 right-full mr-4 px-3 py-1.5 bg-gray-800 text-white text-xs font-semibold rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap pointer-events-none">
         Admin Login
@@ -188,7 +187,7 @@ const App: React.FC = () => {
               <Route path="kontak" element={<ContactPage />} />
             </Route>
 
-            {/* Admin Routes: Refactored for clarity and to fix potential routing issues */}
+            {/* Admin Routes */}
             <Route path="/admin/login" element={<AdminLoginPage />} />
             <Route element={<AdminProtectedRoute><AdminLayout /></AdminProtectedRoute>}>
               <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
@@ -196,7 +195,7 @@ const App: React.FC = () => {
               <Route path="/admin/berita" element={<AdminNewsPage />} />
               <Route path="/admin/guru" element={<AdminTeachersPage />} />
               <Route path="/admin/pengaturan" element={<AdminSettingsPage />} />
-              {/* Redirect from /admin base path to dashboard */}
+              <Route path="/admin/setup" element={<AdminSetupPage />} /> 
               <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
             </Route>
 
