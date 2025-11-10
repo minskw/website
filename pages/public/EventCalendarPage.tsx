@@ -1,29 +1,31 @@
-
-
 import React, { useState, useMemo } from 'react';
-import { mockEvents } from '../../services/mockApi';
+import { mockEvents, getNationalHolidays } from '../../services/mockApi';
 import { SchoolEvent } from '../../types';
-import { Calendar, Clock, MapPin } from 'lucide-react';
+import { Calendar, Clock, MapPin, Star } from 'lucide-react';
 
 const EventCard: React.FC<{ event: SchoolEvent }> = ({ event }) => {
     const eventDate = new Date(`${event.date}T00:00:00`);
     const day = eventDate.getDate();
     const month = eventDate.toLocaleString('id-ID', { month: 'short' });
+    const isHoliday = event.category === 'Hari Libur Nasional';
 
     return (
         <div className="bg-white rounded-lg shadow-md overflow-hidden flex items-start space-x-4 p-4 hover:shadow-lg transition-shadow duration-200">
-            <div className="flex-shrink-0 text-center bg-primary text-white rounded-md p-3 w-20">
+            <div className={`flex-shrink-0 text-center text-white rounded-md p-3 w-20 ${isHoliday ? 'bg-red-500' : 'bg-primary'}`}>
                 <p className="text-3xl font-bold">{day}</p>
                 <p className="text-sm font-semibold uppercase">{month}</p>
             </div>
             <div className="flex-grow">
-                <span className="text-xs font-semibold text-secondary bg-yellow-100 px-2 py-1 rounded-full">{event.category}</span>
+                 <span className={`text-xs font-semibold px-2 py-1 rounded-full ${isHoliday ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-secondary'}`}>
+                    {isHoliday && <Star size={12} className="inline-block mr-1 mb-0.5" />}
+                    {event.category}
+                </span>
                 <h3 className="mt-1 text-lg font-bold font-poppins text-gray-800">{event.title}</h3>
                 <p className="mt-1 text-sm text-gray-600">{event.description}</p>
                 <div className="mt-2 flex flex-wrap items-center text-sm text-gray-500 gap-x-4 gap-y-1">
                     <div className="flex items-center gap-1.5">
                         <Clock size={14} />
-                        <span>{event.time} WIB</span>
+                        <span>{event.time}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                         <MapPin size={14} />
@@ -37,17 +39,37 @@ const EventCard: React.FC<{ event: SchoolEvent }> = ({ event }) => {
 
 const EventCalendarPage: React.FC = () => {
     const [selectedCategory, setSelectedCategory] = useState('Semua');
-    const categories = useMemo(() => Array.from(new Set(mockEvents.map(event => event.category))), []);
+
+    const allEvents = useMemo(() => {
+        const currentYear = new Date().getFullYear();
+        const nationalHolidays = getNationalHolidays(currentYear);
+        const combined = [...mockEvents, ...nationalHolidays];
+        // Remove duplicates just in case there's an overlap
+        return Array.from(new Map(combined.map(event => [`${event.date}-${event.title}`, event])).values());
+    }, []);
+
+    const categories = useMemo(() => {
+        const eventCategories = ['Semua', ...Array.from(new Set(allEvents.map(event => event.category)))];
+        // Custom sort to put 'Hari Libur Nasional' last
+        // FIX: Explicitly type sort callback parameters to prevent 'unknown' type error.
+        return eventCategories.sort((a: string, b: string) => {
+            if (a === 'Semua') return -1;
+            if (b === 'Semua') return 1;
+            if (a === 'Hari Libur Nasional') return 1;
+            if (b === 'Hari Libur Nasional') return -1;
+            return a.localeCompare(b);
+        });
+    }, [allEvents]);
 
     // Group events by month
     const groupedEvents = useMemo(() => {
-        const filteredEvents = mockEvents.filter(event =>
+        const filteredEvents = allEvents.filter(event =>
             selectedCategory === 'Semua' || event.category === selectedCategory
         );
 
         return filteredEvents
             .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-            // FIX: Explicitly cast the initial value of `reduce` to ensure TypeScript correctly infers the accumulator's type.
+            // FIX: Explicitly type the initial value of reduce to ensure correct type inference for groupedEvents.
             .reduce((acc, event) => {
                 const eventDate = new Date(`${event.date}T00:00:00`);
                 const month = eventDate.toLocaleString('id-ID', { month: 'long', year: 'numeric' });
@@ -57,7 +79,7 @@ const EventCalendarPage: React.FC = () => {
                 acc[month].push(event);
                 return acc;
             }, {} as Record<string, SchoolEvent[]>);
-    }, [selectedCategory]);
+    }, [selectedCategory, allEvents]);
 
 
     return (
@@ -69,16 +91,6 @@ const EventCalendarPage: React.FC = () => {
                 </h1>
 
                 <div className="flex flex-wrap justify-center gap-2 mb-10">
-                    <button
-                        onClick={() => setSelectedCategory('Semua')}
-                        className={`px-4 py-2 text-sm font-semibold rounded-full shadow-sm transition-colors ${
-                            selectedCategory === 'Semua'
-                            ? 'bg-primary text-white'
-                            : 'bg-white text-gray-700 hover:bg-gray-100'
-                        }`}
-                    >
-                        Semua Kategori
-                    </button>
                     {categories.map(category => (
                         <button
                             key={category}

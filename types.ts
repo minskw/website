@@ -118,5 +118,5 @@ export interface SchoolEvent {
   time: string; // "HH:MM"
   location: string;
   description: string;
-  category: 'Akademik' | 'Olahraga' | 'Seni & Budaya' | 'Umum';
+  category: 'Akademik' | 'Olahraga' | 'Seni & Budaya' | 'Umum' | 'Hari Libur Nasional';
 }

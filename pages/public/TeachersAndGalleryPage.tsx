@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { mockTeachers, mockGallery } from '../../services/mockApi';
 import { Teacher, GalleryImage } from '../../types';
@@ -55,14 +55,14 @@ const ImageModal: React.FC<{ image: GalleryImage; onClose: () => void }> = ({ im
     );
 };
 
-const GalleryGrid: React.FC<{ onImageClick: (image: GalleryImage) => void }> = ({ onImageClick }) => {
-    if (!mockGallery || mockGallery.length === 0) {
-        return <p className="text-center text-gray-500">Galeri kosong.</p>;
+const GalleryGrid: React.FC<{ images: GalleryImage[]; onImageClick: (image: GalleryImage) => void }> = ({ images, onImageClick }) => {
+    if (!images || images.length === 0) {
+        return <p className="text-center text-gray-500 mt-8">Tidak ada gambar yang cocok dengan kategori ini.</p>;
     }
 
     return (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            {mockGallery.map((image) => (
+            {images.map((image) => (
                 <div
                     key={image.id}
                     className="group relative overflow-hidden rounded-lg cursor-pointer shadow-md hover:shadow-xl transition-shadow duration-300"
@@ -92,6 +92,16 @@ const GalleryGrid: React.FC<{ onImageClick: (image: GalleryImage) => void }> = (
 const TeachersAndGalleryPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'teachers' | 'gallery'>('teachers');
   const [selectedImage, setSelectedImage] = useState<GalleryImage | null>(null);
+
+  // Gallery filter state and logic
+  const [selectedCategory, setSelectedCategory] = useState('Semua');
+  const galleryCategories = useMemo(() => ['Semua', ...Array.from(new Set(mockGallery.map(img => img.category)))], []);
+  const filteredImages = useMemo(() => {
+    if (selectedCategory === 'Semua') {
+      return mockGallery;
+    }
+    return mockGallery.filter(image => image.category === selectedCategory);
+  }, [selectedCategory]);
 
   return (
     <>
@@ -136,7 +146,22 @@ const TeachersAndGalleryPage: React.FC = () => {
 
         {activeTab === 'gallery' && (
           <div>
-            <GalleryGrid onImageClick={setSelectedImage} />
+            <div className="flex flex-wrap justify-center gap-2 mb-8">
+                {galleryCategories.map(category => (
+                    <button
+                        key={category}
+                        onClick={() => setSelectedCategory(category)}
+                        className={`px-4 py-2 text-sm font-semibold rounded-full shadow-sm transition-colors duration-200 ${
+                            selectedCategory === category
+                            ? 'bg-primary text-white'
+                            : 'bg-white text-gray-700 hover:bg-gray-100'
+                        }`}
+                    >
+                        {category}
+                    </button>
+                ))}
+            </div>
+            <GalleryGrid images={filteredImages} onImageClick={setSelectedImage} />
           </div>
         )}
       </div>

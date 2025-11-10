@@ -1,10 +1,19 @@
 import React, { useState, FormEvent } from 'react';
-import { mockPpdbApplicants } from '../../services/mockApi';
+import { mockPpdbApplicants, ppdbSchedule } from '../../services/mockApi';
 import { PpdbApplicant } from '../../types';
 import { CheckCircle, Clock, XCircle, FileText, UserPlus, Search } from 'lucide-react';
 import { SCHOOL_INFO } from '../../constants';
 
 type View = 'info' | 'form' | 'status' | 'result';
+
+const formatDate = (dateString: string) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString + 'T00:00:00').toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+    });
+};
 
 const PpdbInfo: React.FC<{ setView: (view: View) => void }> = ({ setView }) => (
     <div className="bg-white p-8 rounded-lg shadow-md">
@@ -12,9 +21,9 @@ const PpdbInfo: React.FC<{ setView: (view: View) => void }> = ({ setView }) => (
         <div className="space-y-4 text-gray-700">
             <div>
                 <h3 className="font-semibold text-lg">Jadwal Pendaftaran</h3>
-                <p>Pendaftaran: 5 Juli - 20 Juli 2024</p>
-                <p>Verifikasi Berkas: 21 - 23 Juli 2024</p>
-                <p>Pengumuman Hasil: 25 Juli 2024</p>
+                <p>Pendaftaran: {formatDate(ppdbSchedule.startDate)} - {formatDate(ppdbSchedule.endDate)}</p>
+                <p>Verifikasi Berkas: {formatDate(ppdbSchedule.verificationDeadline)}</p>
+                <p>Pengumuman Hasil: {formatDate(ppdbSchedule.announcementDate)}</p>
             </div>
             <div>
                 <h3 className="font-semibold text-lg">Syarat Pendaftaran</h3>

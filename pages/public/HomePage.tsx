@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { SCHOOL_INFO } from '../../constants';
-import { mockNews, mockGallery } from '../../services/mockApi';
+import { mockNews, mockGallery, ppdbSchedule } from '../../services/mockApi';
 import { ArrowRight, BookOpen, Star, Users } from 'lucide-react';
 
 const NewsCard: React.FC<{ article: typeof mockNews[0] }> = ({ article }) => (
@@ -19,6 +19,11 @@ const NewsCard: React.FC<{ article: typeof mockNews[0] }> = ({ article }) => (
 );
 
 const HomePage: React.FC = () => {
+    const today = new Date();
+    const startDate = new Date(ppdbSchedule.startDate + 'T00:00:00');
+    const endDate = new Date(ppdbSchedule.endDate + 'T23:59:59');
+    const isRegistrationOpen = today >= startDate && today <= endDate;
+
   return (
     <div className="bg-gray-50">
       {/* Hero Section */}
@@ -29,9 +34,15 @@ const HomePage: React.FC = () => {
         <div className="container mx-auto text-center px-4">
           <h1 className="text-4xl md:text-6xl font-extrabold font-poppins drop-shadow-lg animate-fade-in-down">{SCHOOL_INFO.name}</h1>
           <p className="mt-4 text-lg md:text-2xl font-semibold text-secondary drop-shadow-md animate-fade-in-up">{`"${SCHOOL_INFO.motto}"`}</p>
-          <Link to="/ppdb" className="mt-8 inline-block bg-secondary text-primary font-bold py-3 px-8 rounded-full shadow-lg hover:bg-yellow-400 transform hover:scale-105 transition-all duration-300">
-            Daftar PPDB Sekarang
-          </Link>
+          {isRegistrationOpen ? (
+                <Link to="/ppdb" className="mt-8 inline-block bg-secondary text-primary font-bold py-3 px-8 rounded-full shadow-lg hover:bg-yellow-400 transform hover:scale-105 transition-all duration-300">
+                    Daftar PPDB Sekarang
+                </Link>
+            ) : (
+                <div className="mt-8 inline-block bg-gray-600 bg-opacity-80 text-white font-bold py-3 px-8 rounded-full shadow-lg">
+                    {today < startDate ? `Pendaftaran PPDB Dibuka ${startDate.toLocaleDateString('id-ID', {day: 'numeric', month: 'long'})}` : 'Pendaftaran PPDB Telah Ditutup'}
+                </div>
+            )}
         </div>
       </section>
 

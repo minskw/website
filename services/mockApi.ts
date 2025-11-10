@@ -160,6 +160,13 @@ export const mockGallery: GalleryImage[] = [
   { id: 'g8', imageUrl: 'https://picsum.photos/seed/gallery8/600/400', caption: 'Praktikum di Laboratorium IPA', category: 'Akademik' },
 ];
 
+export const ppdbSchedule = {
+  startDate: '2024-07-05',
+  endDate: '2024-07-20',
+  verificationDeadline: '2024-07-23',
+  announcementDate: '2024-07-25',
+};
+
 export const mockPpdbApplicants: PpdbApplicant[] = [
   {
     id: 'app1',
@@ -314,7 +321,7 @@ export const mockEvents: SchoolEvent[] = [
   },
   {
     id: 'evt6',
-    title: 'Maulid Nabi Muhammad SAW 1446 H',
+    title: 'Peringatan Maulid Nabi Muhammad SAW 1446 H',
     date: '2024-09-15',
     time: '08:30',
     location: 'Masjid Sekolah',
@@ -358,3 +365,54 @@ export const mockEvents: SchoolEvent[] = [
     category: 'Akademik',
   },
 ];
+
+// Data SKB 3 Menteri 2024
+const holidays2024 = [
+    // Hari Libur Nasional 2024
+    { date: '2024-01-01', title: 'Tahun Baru 2024 Masehi' },
+    { date: '2024-02-08', title: 'Isra Mikraj Nabi Muhammad SAW' },
+    { date: '2024-02-10', title: 'Tahun Baru Imlek 2575 Kongzili' },
+    { date: '2024-03-11', title: 'Hari Suci Nyepi Tahun Baru Saka 1946' },
+    { date: '2024-03-29', title: 'Wafat Isa Al Masih' },
+    { date: '2024-03-31', title: 'Hari Paskah' },
+    { date: '2024-04-10', title: 'Hari Raya Idul Fitri 1445 Hijriah' },
+    { date: '2024-04-11', title: 'Hari Raya Idul Fitri 1445 Hijriah' },
+    { date: '2024-05-01', title: 'Hari Buruh Internasional' },
+    { date: '2024-05-09', title: 'Kenaikan Isa Al Masih' },
+    { date: '2024-05-23', title: 'Hari Raya Waisak 2568 BE' },
+    { date: '2024-06-01', title: 'Hari Lahir Pancasila' },
+    { date: '2024-06-17', title: 'Hari Raya Idul Adha 1445 Hijriah' },
+    { date: '2024-07-07', title: 'Tahun Baru Islam 1446 Hijriah' },
+    { date: '2024-08-17', title: 'Hari Kemerdekaan Republik Indonesia' },
+    { date: '2024-09-16', title: 'Maulid Nabi Muhammad SAW' },
+    { date: '2024-12-25', title: 'Hari Raya Natal' },
+
+    // Cuti Bersama 2024
+    { date: '2024-02-09', title: 'Cuti Bersama Tahun Baru Imlek' },
+    { date: '2024-03-12', title: 'Cuti Bersama Hari Suci Nyepi' },
+    { date: '2024-04-08', title: 'Cuti Bersama Idul Fitri 1445 H' },
+    { date: '2024-04-09', title: 'Cuti Bersama Idul Fitri 1445 H' },
+    { date: '2024-04-12', title: 'Cuti Bersama Idul Fitri 1445 H' },
+    { date: '2024-04-15', title: 'Cuti Bersama Idul Fitri 1445 H' },
+    { date: '2024-05-10', title: 'Cuti Bersama Kenaikan Isa Al Masih' },
+    { date: '2024-05-24', title: 'Cuti Bersama Hari Raya Waisak' },
+    { date: '2024-06-18', title: 'Cuti Bersama Idul Adha 1445 H' },
+    { date: '2024-12-26', title: 'Cuti Bersama Hari Raya Natal' },
+];
+
+export const getNationalHolidays = (year: number): SchoolEvent[] => {
+    // For this example, we'll only return data for 2024.
+    if (year !== 2024) {
+        return [];
+    }
+
+    return holidays2024.map((holiday, index) => ({
+        id: `holiday-${year}-${index}`,
+        title: holiday.title,
+        date: holiday.date,
+        time: 'Seharian',
+        location: 'Nasional',
+        description: `Hari Libur Nasional atau Cuti Bersama berdasarkan SKB 3 Menteri.`,
+        category: 'Hari Libur Nasional',
+    }));
+};
