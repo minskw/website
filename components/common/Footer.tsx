@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+// Fix: Removed SOCIAL_LINKS from this import as it was not exported. It is now exported from constants.tsx
 import { SCHOOL_INFO, NAV_LINKS, SOCIAL_LINKS } from '../../constants';
 import { Facebook, Instagram, Youtube } from 'lucide-react';
 

@@ -1,7 +1,8 @@
+// Fix: Added missing type definitions for the application.
 export interface NewsArticle {
   id: string;
   title: string;
-  category: 'Kegiatan' | 'Pengumuman' | 'Prestasi';
+  category: 'Prestasi' | 'Kegiatan' | 'Pengumuman';
   date: string;
   imageUrl: string;
   excerpt: string;
@@ -9,7 +10,7 @@ export interface NewsArticle {
 }
 
 export interface Teacher {
-  id:string;
+  id: string;
   name: string;
   position: string;
   subject: string;
@@ -23,7 +24,7 @@ export interface GalleryImage {
   id: string;
   imageUrl: string;
   caption: string;
-  category: string;
+  category: 'Kegiatan' | 'Prestasi' | 'Ekstrakurikuler' | 'Akademik';
 }
 
 export enum PpdbStatus {
@@ -40,12 +41,12 @@ export enum AIVerificationStatus {
 }
 
 export interface PpdbApplicant {
-  id:string;
+  id: string;
   registrationNumber: string;
   fullName: string;
   nik: string;
   originSchool: string;
-  submissionDate: string;
+  submissionDate: string; // "YYYY-MM-DD"
   status: PpdbStatus;
   aiVerificationStatus: AIVerificationStatus;
   fatherName: string;
@@ -54,16 +55,8 @@ export interface PpdbApplicant {
   documents: {
     kk: string;
     akta: string;
-    ijazah: string;
+    ijazah?: string;
   };
-}
-
-// Parent Portal Types
-export interface Parent {
-  id: string;
-  username: string;
-  name: string;
-  studentId: string;
 }
 
 export interface Student {
@@ -74,11 +67,18 @@ export interface Student {
   imageUrl: string;
 }
 
+export interface Parent {
+  id: string;
+  username: string;
+  name: string;
+  studentId: string;
+}
+
 export interface AcademicRecord {
   subject: string;
   score: number;
   teacher: string;
-  date: string;
+  date: string; // "YYYY-MM-DD"
 }
 
 export interface SemesterData {
@@ -88,7 +88,7 @@ export interface SemesterData {
 }
 
 export interface AttendanceRecord {
-  date: string;
+  date: string; // "YYYY-MM-DD"
   status: 'Hadir' | 'Sakit' | 'Izin' | 'Alpa';
 }
 
@@ -96,19 +96,19 @@ export interface SchoolAnnouncement {
   id: string;
   title: string;
   content: string;
-  date: string;
-  targetGrade: 'all' | number; // 'all' for all grades or a specific grade number
+  date: string; // "YYYY-MM-DD"
+  targetGrade: number | 'all';
 }
 
 export interface PaymentRecord {
   id: string;
+  studentId: string;
   month: string;
   year: number;
   amount: number;
   status: 'Lunas' | 'Belum Lunas';
-  paymentDate?: string; // Optional, only present if status is 'Lunas'
-  dueDate: string;
-  studentId: string;
+  dueDate: string; // "YYYY-MM-DD"
+  paymentDate?: string; // "YYYY-MM-DD"
 }
 
 export interface SchoolEvent {
@@ -119,4 +119,11 @@ export interface SchoolEvent {
   location: string;
   description: string;
   category: 'Akademik' | 'Olahraga' | 'Seni & Budaya' | 'Umum' | 'Hari Libur Nasional';
+}
+
+export interface HomepageContent {
+  heroImageUrl: string;
+  welcomeTitle: string;
+  welcomeText: string;
+  welcomeImageUrl: string;
 }

@@ -5,7 +5,9 @@ import {
   mockNews,
   mockTeachers,
   mockPpdbApplicants,
-  mockEvents
+  mockEvents,
+  mockHomepageContent,
+  mockGallery
 } from '../../services/mockApi';
 import { DatabaseZap, CheckCircle, AlertTriangle } from 'lucide-react';
 
@@ -94,12 +96,21 @@ const AdminSetupPage: React.FC = () => {
                 const cleanData = JSON.parse(JSON.stringify(data));
                 batch.set(docRef, cleanData);
             });
+            
+            addLog("Mempersiapkan koleksi 'gallery'...");
+            mockGallery.forEach(item => {
+                const docRef = doc(collection(db, "gallery"));
+                const { id, ...data } = item;
+                const cleanData = JSON.parse(JSON.stringify(data));
+                batch.set(docRef, cleanData);
+            });
 
             addLog("Mempersiapkan dokumen 'settings'...");
             batch.set(doc(db, "settings", "schoolInfo"), JSON.parse(JSON.stringify(schoolInfoSettings)));
             batch.set(doc(db, "settings", "profileContent"), JSON.parse(JSON.stringify(profileContentSettings)));
             batch.set(doc(db, "settings", "ppdbSchedule"), JSON.parse(JSON.stringify(ppdbScheduleSettings)));
-            
+            batch.set(doc(db, "settings", "homepageContent"), JSON.parse(JSON.stringify(mockHomepageContent)));
+
             addLog("Mengirim data ke Firestore... Ini mungkin memakan waktu beberapa saat.");
             await batch.commit();
             

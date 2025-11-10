@@ -1,4 +1,5 @@
-
+---
+---
 import React, { useState, useMemo, useEffect } from 'react';
 import { NewsArticle } from '../../types';
 import { PlusCircle, Edit, Trash2, X, Search } from 'lucide-react';
@@ -13,6 +14,7 @@ const AdminNewsPage: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentArticle, setCurrentArticle] = useState<NewsArticle | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [filterCategory, setFilterCategory] = useState('Semua');
 
     const newsCollectionRef = collection(db, "news");
 
@@ -29,11 +31,12 @@ const AdminNewsPage: React.FC = () => {
     }, []);
 
     const filteredNews = useMemo(() => {
-        return news.filter(article =>
-            article.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            article.category.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-    }, [news, searchTerm]);
+        return news.filter(article => {
+            const matchesSearch = article.title.toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesCategory = filterCategory === 'Semua' || article.category === filterCategory;
+            return matchesSearch && matchesCategory;
+        });
+    }, [news, searchTerm, filterCategory]);
 
     const openModal = (article: NewsArticle | null = null) => {
         setCurrentArticle(article ? { ...article } : {
@@ -150,8 +153,8 @@ const AdminNewsPage: React.FC = () => {
                 </button>
             </div>
             
-            <div className="mb-4">
-                 <div className="relative w-full max-w-sm">
+            <div className="flex flex-col sm:flex-row gap-4 mb-4">
+                 <div className="relative w-full sm:w-auto sm:max-w-sm">
                     <input
                         type="text"
                         placeholder="Cari judul berita..."
@@ -160,6 +163,18 @@ const AdminNewsPage: React.FC = () => {
                         className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                     />
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                </div>
+                <div className="relative w-full sm:w-auto">
+                    <select
+                        value={filterCategory}
+                        onChange={(e) => setFilterCategory(e.target.value)}
+                        className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white appearance-none"
+                    >
+                        <option value="Semua">Semua Kategori</option>
+                        <option value="Kegiatan">Kegiatan</option>
+                        <option value="Pengumuman">Pengumuman</option>
+                        <option value="Prestasi">Prestasi</option>
+                    </select>
                 </div>
             </div>
 

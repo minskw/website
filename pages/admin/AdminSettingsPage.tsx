@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { SCHOOL_INFO } from '../../constants';
-import { SchoolEvent } from '../../types';
-import { Info, Calendar, UserCheck, Users, Save, PlusCircle, Edit, Trash2, X, Building, Flag, Eye } from 'lucide-react';
+import { SchoolEvent, HomepageContent } from '../../types';
+import { Info, Calendar, UserCheck, Save, PlusCircle, Edit, Trash2, X, Building, Flag, Eye, Home } from 'lucide-react';
 
 // Firebase imports
 import { db } from '../../services/firebase';
@@ -9,7 +9,7 @@ import { collection, getDocs, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc,
 
 
 const AdminSettingsPage: React.FC = () => {
-    const [activeTab, setActiveTab] = useState('umum');
+    const [activeTab, setActiveTab] = useState('beranda');
     const [isLoading, setIsLoading] = useState(true);
 
     // --- State for each tab ---
@@ -22,6 +22,12 @@ const AdminSettingsPage: React.FC = () => {
     });
     const [schedule, setSchedule] = useState({ startDate: '', endDate: '', verificationDeadline: '', announcementDate: ''});
     const [events, setEvents] = useState<SchoolEvent[]>([]);
+    const [homepageContent, setHomepageContent] = useState<HomepageContent>({
+        heroImageUrl: '',
+        welcomeTitle: '',
+        welcomeText: '',
+        welcomeImageUrl: ''
+    });
     const [isEventModalOpen, setIsEventModalOpen] = useState(false);
     const [currentEvent, setCurrentEvent] = useState<SchoolEvent | null>(null);
     
@@ -54,6 +60,12 @@ const AdminSettingsPage: React.FC = () => {
                 setSchedule(scheduleDoc.data() as any);
             }
             
+            // Fetch Homepage Content
+            const homepageDoc = await getDoc(doc(settingsCollectionRef, "homepageContent"));
+            if (homepageDoc.exists()) {
+                setHomepageContent(homepageDoc.data() as HomepageContent);
+            }
+
             // Fetch Events
             const eventsQuery = query(eventsCollectionRef, orderBy("date", "desc"));
             const eventsSnapshot = await getDocs(eventsQuery);
@@ -68,14 +80,32 @@ const AdminSettingsPage: React.FC = () => {
     // --- Handlers ---
     const handleSave = async (section: string) => {
         try {
-            if (section === 'Informasi Umum') {
-                await setDoc(doc(settingsCollectionRef, "schoolInfo"), { info: schoolInfo, socialLinks });
-            } else if (section === 'Halaman Profil') {
-                await setDoc(doc(settingsCollectionRef, "profileContent"), profileContent);
-            } else if (section === 'Jadwal PPDB') {
-                await setDoc(doc(settingsCollectionRef, "ppdbSchedule"), schedule);
+            let docRef;
+            let dataToSave;
+
+            switch (section) {
+                case 'Informasi Umum':
+                    docRef = doc(settingsCollectionRef, "schoolInfo");
+                    dataToSave = { info: schoolInfo, socialLinks };
+                    break;
+                case 'Halaman Profil':
+                    docRef = doc(settingsCollectionRef, "profileContent");
+                    dataToSave = profileContent;
+                    break;
+                case 'Jadwal PPDB':
+                    docRef = doc(settingsCollectionRef, "ppdbSchedule");
+                    dataToSave = schedule;
+                    break;
+                case 'Pengaturan Beranda':
+                    docRef = doc(settingsCollectionRef, "homepageContent");
+                    dataToSave = homepageContent;
+                    break;
+                default:
+                    throw new Error("Invalid section");
             }
-             alert(`Pengaturan untuk seksi '${section}' telah disimpan!`);
+            
+            await setDoc(docRef, dataToSave);
+            alert(`Pengaturan untuk seksi '${section}' telah disimpan!`);
         } catch (error) {
             console.error("Error saving settings: ", error);
             alert(`Gagal menyimpan pengaturan untuk '${section}'.`);
@@ -124,11 +154,33 @@ const AdminSettingsPage: React.FC = () => {
 
     // --- Render Methods ---
     const TABS = [
+        { id: 'beranda', label: 'Pengaturan Beranda', icon: <Home size={18} /> },
         { id: 'umum', label: 'Informasi Umum', icon: <Info size={18} /> },
         { id: 'profil', label: 'Halaman Profil', icon: <Building size={18} /> },
         { id: 'ppdb', label: 'Jadwal PPDB', icon: <UserCheck size={18} /> },
         { id: 'kalender', label: 'Kalender Kegiatan', icon: <Calendar size={18} /> },
     ];
+
+    const renderHomepageSettings = () => (
+        <div className="space-y-6">
+            <div className="p-5 border rounded-lg">
+                <h3 className="text-lg font-bold text-gray-700 mb-4">Seksi Hero</h3>
+                <div>
+                    <label className="block text-sm font-medium">URL Gambar Latar (Hero)</label>
+                    <input type="url" value={homepageContent.heroImageUrl} onChange={e => setHomepageContent({...homepageContent, heroImageUrl: e.target.value})} className={inputClass} />
+                </div>
+            </div>
+            <div className="p-5 border rounded-lg">
+                <h3 className="text-lg font-bold text-gray-700 mb-4">Seksi Selamat Datang</h3>
+                <div className="space-y-4">
+                    <div><label className="block text-sm font-medium">Judul Selamat Datang</label><input type="text" value={homepageContent.welcomeTitle} onChange={e => setHomepageContent({...homepageContent, welcomeTitle: e.target.value})} className={inputClass} /></div>
+                    <div><label className="block text-sm font-medium">Teks Paragraf Selamat Datang</label><textarea value={homepageContent.welcomeText} onChange={e => setHomepageContent({...homepageContent, welcomeText: e.target.value})} className={textareaClass}></textarea></div>
+                    <div><label className="block text-sm font-medium">URL Gambar di samping teks</label><input type="url" value={homepageContent.welcomeImageUrl} onChange={e => setHomepageContent({...homepageContent, welcomeImageUrl: e.target.value})} className={inputClass} /></div>
+                </div>
+            </div>
+            <button onClick={() => handleSave('Pengaturan Beranda')} className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark font-semibold"><Save size={18} /> Simpan Perubahan</button>
+        </div>
+    );
 
     const renderGeneralInfo = () => (
         <div className="space-y-6">
@@ -254,6 +306,7 @@ const AdminSettingsPage: React.FC = () => {
     const renderContent = () => {
         if (isLoading) return <p className="text-center py-8">Memuat pengaturan...</p>;
         switch (activeTab) {
+            case 'beranda': return renderHomepageSettings();
             case 'umum': return renderGeneralInfo();
             case 'profil': return renderProfileSettings();
             case 'ppdb': return renderPpdbSchedule();

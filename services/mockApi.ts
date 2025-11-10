@@ -1,4 +1,4 @@
-import { NewsArticle, Teacher, GalleryImage, PpdbApplicant, PpdbStatus, Parent, Student, AcademicRecord, AttendanceRecord, SchoolAnnouncement, SemesterData, PaymentRecord, SchoolEvent, AIVerificationStatus } from '../types';
+import { NewsArticle, Teacher, GalleryImage, PpdbApplicant, PpdbStatus, Parent, Student, AcademicRecord, AttendanceRecord, SchoolAnnouncement, SemesterData, PaymentRecord, SchoolEvent, AIVerificationStatus, HomepageContent } from '../types';
 
 export const mockNews: NewsArticle[] = [
   {
@@ -365,6 +365,13 @@ export const mockEvents: SchoolEvent[] = [
     category: 'Akademik',
   },
 ];
+
+export const mockHomepageContent: HomepageContent = {
+  heroImageUrl: 'https://picsum.photos/seed/school/1920/1080',
+  welcomeTitle: 'Selamat Datang di MIN Singkawang',
+  welcomeText: "MIN Singkawang adalah lembaga pendidikan dasar di bawah naungan Kementerian Agama yang berkomitmen untuk mencetak generasi Qur'ani yang berakhlak mulia, cerdas, dan berprestasi.",
+  welcomeImageUrl: 'https://picsum.photos/seed/profile/800/600',
+};
 
 // Data SKB 3 Menteri 2024
 const holidays2024 = [

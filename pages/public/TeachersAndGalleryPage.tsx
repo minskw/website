@@ -1,8 +1,12 @@
-import React, { useState, useMemo } from 'react';
+---
+---
+import React, { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { mockTeachers, mockGallery } from '../../services/mockApi';
+import { mockTeachers } from '../../services/mockApi';
 import { Teacher, GalleryImage } from '../../types';
-import { Camera, Users, X } from 'lucide-react';
+import { Camera, Users, X, LoaderCircle } from 'lucide-react';
+import { db } from '../../services/firebase';
+import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 
 const TeacherCard: React.FC<{ teacher: Teacher }> = ({ teacher }) => (
     <div className="bg-white text-center p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 flex flex-col">
@@ -92,16 +96,34 @@ const GalleryGrid: React.FC<{ images: GalleryImage[]; onImageClick: (image: Gall
 const TeachersAndGalleryPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'teachers' | 'gallery'>('teachers');
   const [selectedImage, setSelectedImage] = useState<GalleryImage | null>(null);
+  const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
+  const [isLoadingGallery, setIsLoadingGallery] = useState(true);
 
-  // Gallery filter state and logic
+  useEffect(() => {
+    const fetchGallery = async () => {
+        setIsLoadingGallery(true);
+        const galleryCollectionRef = collection(db, "gallery");
+        const q = query(galleryCollectionRef, orderBy("caption"));
+        const data = await getDocs(q);
+        const imagesData = data.docs.map(doc => ({ ...doc.data(), id: doc.id } as GalleryImage));
+        setGalleryImages(imagesData);
+        setIsLoadingGallery(false);
+    };
+
+    if (activeTab === 'gallery') {
+      fetchGallery();
+    }
+  }, [activeTab]);
+
   const [selectedCategory, setSelectedCategory] = useState('Semua');
-  const galleryCategories = useMemo(() => ['Semua', ...Array.from(new Set(mockGallery.map(img => img.category)))], []);
+  const galleryCategories = useMemo(() => ['Semua', ...Array.from(new Set(galleryImages.map(img => img.category)))], [galleryImages]);
+  
   const filteredImages = useMemo(() => {
     if (selectedCategory === 'Semua') {
-      return mockGallery;
+      return galleryImages;
     }
-    return mockGallery.filter(image => image.category === selectedCategory);
-  }, [selectedCategory]);
+    return galleryImages.filter(image => image.category === selectedCategory);
+  }, [selectedCategory, galleryImages]);
 
   return (
     <>
@@ -146,22 +168,30 @@ const TeachersAndGalleryPage: React.FC = () => {
 
         {activeTab === 'gallery' && (
           <div>
-            <div className="flex flex-wrap justify-center gap-2 mb-8">
-                {galleryCategories.map(category => (
-                    <button
-                        key={category}
-                        onClick={() => setSelectedCategory(category)}
-                        className={`px-4 py-2 text-sm font-semibold rounded-full shadow-sm transition-colors duration-200 ${
-                            selectedCategory === category
-                            ? 'bg-primary text-white'
-                            : 'bg-white text-gray-700 hover:bg-gray-100'
-                        }`}
-                    >
-                        {category}
-                    </button>
-                ))}
-            </div>
-            <GalleryGrid images={filteredImages} onImageClick={setSelectedImage} />
+            {isLoadingGallery ? (
+                <div className="flex justify-center items-center py-20">
+                    <LoaderCircle className="animate-spin text-primary" size={40} />
+                </div>
+            ) : (
+                <>
+                <div className="flex flex-wrap justify-center gap-2 mb-8">
+                    {galleryCategories.map(category => (
+                        <button
+                            key={category}
+                            onClick={() => setSelectedCategory(category)}
+                            className={`px-4 py-2 text-sm font-semibold rounded-full shadow-sm transition-colors duration-200 ${
+                                selectedCategory === category
+                                ? 'bg-primary text-white'
+                                : 'bg-white text-gray-700 hover:bg-gray-100'
+                            }`}
+                        >
+                            {category}
+                        </button>
+                    ))}
+                </div>
+                <GalleryGrid images={filteredImages} onImageClick={setSelectedImage} />
+                </>
+            )}
           </div>
         )}
       </div>

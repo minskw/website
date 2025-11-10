@@ -11,7 +11,7 @@ const TeacherDetailPage: React.FC = () => {
         return (
             <div className="text-center py-20">
                 <h1 className="text-2xl font-bold">Guru tidak ditemukan.</h1>
-                <Link to="/guru-dan-galeri" className="text-primary hover:underline mt-4 inline-block">
+                <Link to="/gtk" className="text-primary hover:underline mt-4 inline-block">
                     Kembali ke Daftar Guru
                 </Link>
             </div>
@@ -21,7 +21,7 @@ const TeacherDetailPage: React.FC = () => {
     return (
         <div className="bg-light">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
-                <Link to="/guru-dan-galeri" className="inline-flex items-center text-primary hover:underline mb-6 font-semibold">
+                <Link to="/gtk" className="inline-flex items-center text-primary hover:underline mb-6 font-semibold">
                     <ArrowLeft className="w-4 h-4 mr-2" />
                     Kembali ke Daftar Guru
                 </Link>
