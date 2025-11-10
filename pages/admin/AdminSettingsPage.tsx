@@ -5,7 +5,7 @@ import { Info, Calendar, UserCheck, Users, Save, PlusCircle, Edit, Trash2, X, Bu
 
 // Firebase imports
 import { db } from '../../services/firebase';
-import { collection, getDocs, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { collection, getDocs, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, query, orderBy } from "firebase/firestore";
 
 
 const AdminSettingsPage: React.FC = () => {

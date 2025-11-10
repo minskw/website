@@ -4,7 +4,7 @@ import { PlusCircle, Edit, Trash2, X, Eye, Search, ArrowUp, ArrowDown } from 'lu
 
 // Firebase imports
 import { db } from '../../services/firebase';
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy } from "firebase/firestore";
 
 type SortKey = 'name' | 'subject';
 

@@ -4,7 +4,7 @@ import { Search, ChevronDown, Check, X, Clock, Eye, Bot, Edit, Download, Trash2,
 
 // Firebase imports
 import { db } from '../../services/firebase';
-import { collection, getDocs, updateDoc, doc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { collection, getDocs, updateDoc, doc, query, orderBy } from "firebase/firestore";
 
 
 const getStatusBadge = (status: PpdbStatus) => {
