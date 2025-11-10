@@ -179,34 +179,38 @@ const AdminPpdbPage: React.FC = () => {
                     </thead>
                     <tbody>
                         {filteredApplicants.map(app => (
-                            <tr key={app.id} className="bg-white border-b hover:bg-gray-50">
+                            <tr key={app.id} 
+                                className="bg-white border-b hover:bg-gray-50 cursor-pointer"
+                                onClick={() => setSelectedApplicant(app)}
+                            >
                                 <td className="px-6 py-4 font-medium text-gray-900">{app.registrationNumber}</td>
                                 <td className="px-6 py-4">{app.fullName}</td>
                                 <td className="px-6 py-4">{app.originSchool}</td>
                                 <td className="px-6 py-4">{new Date(app.submissionDate).toLocaleDateString('id-ID')}</td>
                                 <td className="px-6 py-4">{getStatusBadge(app.status)}</td>
                                 <td className="px-6 py-4 text-center">{getAIVerificationBadge(app.aiVerificationStatus)}</td>
-                                <td className="px-6 py-4 text-center flex items-center justify-center gap-2">
-                                    <button onClick={() => setSelectedApplicant(app)} title="Lihat Detail" className="text-blue-600 hover:text-blue-800"><Eye size={18} /></button>
-                                    <button onClick={() => openEditModal(app)} title="Edit" className="text-green-600 hover:text-green-800"><Edit size={18} /></button>
-                                     <button 
-                                        onClick={() => handleAIVerify(app.id)} 
-                                        title="Verifikasi Dokumen dengan AI" 
-                                        className="text-purple-600 hover:text-purple-800 disabled:opacity-50"
-                                        disabled={isVerifying === app.id}
-                                    >
-                                        {isVerifying === app.id ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600"></div> : <Bot size={18} />}
-                                    </button>
-                                    <div className="relative group">
-                                         <button className="p-1 rounded-md text-gray-600 hover:bg-gray-200"><ChevronDown size={18}/></button>
-                                         <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none group-hover:pointer-events-auto">
-                                             <div className="py-1">
-                                                 <a href="#" onClick={(e) => { e.preventDefault(); handleStatusChange(app.id, PpdbStatus.ACCEPTED)}} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Set Diterima</a>
-                                                 <a href="#" onClick={(e) => { e.preventDefault(); handleStatusChange(app.id, PpdbStatus.REJECTED)}} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Set Ditolak</a>
-                                                 <a href="#" onClick={(e) => { e.preventDefault(); handleStatusChange(app.id, PpdbStatus.VERIFIED)}} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Set Terverifikasi</a>
-                                                 <a href="#" onClick={(e) => { e.preventDefault(); handleStatusChange(app.id, PpdbStatus.WAITING)}} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Set Menunggu</a>
+                                <td className="px-6 py-4 text-center">
+                                    <div className="flex items-center justify-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                        <button onClick={() => openEditModal(app)} title="Edit" className="text-green-600 hover:text-green-800"><Edit size={18} /></button>
+                                         <button 
+                                            onClick={() => handleAIVerify(app.id)} 
+                                            title="Verifikasi Dokumen dengan AI" 
+                                            className="text-purple-600 hover:text-purple-800 disabled:opacity-50"
+                                            disabled={isVerifying === app.id}
+                                        >
+                                            {isVerifying === app.id ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600"></div> : <Bot size={18} />}
+                                        </button>
+                                        <div className="relative group">
+                                             <button className="p-1 rounded-md text-gray-600 hover:bg-gray-200"><ChevronDown size={18}/></button>
+                                             <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none group-hover:pointer-events-auto">
+                                                 <div className="py-1">
+                                                     <a href="#" onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleStatusChange(app.id, PpdbStatus.ACCEPTED)}} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Set Diterima</a>
+                                                     <a href="#" onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleStatusChange(app.id, PpdbStatus.REJECTED)}} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Set Ditolak</a>
+                                                     <a href="#" onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleStatusChange(app.id, PpdbStatus.VERIFIED)}} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Set Terverifikasi</a>
+                                                     <a href="#" onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleStatusChange(app.id, PpdbStatus.WAITING)}} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Set Menunggu</a>
+                                                 </div>
                                              </div>
-                                         </div>
+                                        </div>
                                     </div>
                                 </td>
                             </tr>
