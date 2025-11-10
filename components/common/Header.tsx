@@ -15,6 +15,7 @@ const Header: React.FC = () => {
               <img className="h-12 w-12" src={SCHOOL_INFO.logo} alt="Logo MIN SINGKAWANG" />
               <div className="hidden sm:block">
                 <h1 className="text-lg font-bold text-primary font-poppins">{SCHOOL_INFO.name}</h1>
+                <p className="text-xs text-gray-500 -mt-1">KALIMANTAN BARAT</p>
               </div>
             </Link>
           </div>
