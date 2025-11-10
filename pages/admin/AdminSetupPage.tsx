@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { db } from '../../services/firebase';
-import { collection, addDoc, setDoc, doc, writeBatch } from 'firebase/firestore';
+import { collection, doc, writeBatch } from 'firebase/firestore';
 import {
   mockNews,
   mockTeachers,
@@ -61,41 +61,44 @@ const AdminSetupPage: React.FC = () => {
         try {
             addLog("Memulai proses seeding database...");
 
-            // Use a batch write for efficiency
             const batch = writeBatch(db);
 
             addLog("Mempersiapkan koleksi 'news'...");
             mockNews.forEach(item => {
                 const docRef = doc(collection(db, "news"));
-                const { id, ...data } = item; // remove id from mock
-                batch.set(docRef, data);
+                const { id, ...data } = item;
+                const cleanData = JSON.parse(JSON.stringify(data));
+                batch.set(docRef, cleanData);
             });
             
             addLog("Mempersiapkan koleksi 'teachers'...");
             mockTeachers.forEach(item => {
                 const docRef = doc(collection(db, "teachers"));
-                 const { id, ...data } = item;
-                batch.set(docRef, data);
+                const { id, ...data } = item;
+                const cleanData = JSON.parse(JSON.stringify(data));
+                batch.set(docRef, cleanData);
             });
             
             addLog("Mempersiapkan koleksi 'ppdb_applicants'...");
             mockPpdbApplicants.forEach(item => {
                 const docRef = doc(collection(db, "ppdb_applicants"));
-                 const { id, ...data } = item;
-                batch.set(docRef, data);
+                const { id, ...data } = item;
+                const cleanData = JSON.parse(JSON.stringify(data));
+                batch.set(docRef, cleanData);
             });
 
             addLog("Mempersiapkan koleksi 'events'...");
             mockEvents.forEach(item => {
                 const docRef = doc(collection(db, "events"));
-                 const { id, ...data } = item;
-                batch.set(docRef, data);
+                const { id, ...data } = item;
+                const cleanData = JSON.parse(JSON.stringify(data));
+                batch.set(docRef, cleanData);
             });
 
             addLog("Mempersiapkan dokumen 'settings'...");
-            batch.set(doc(db, "settings", "schoolInfo"), schoolInfoSettings);
-            batch.set(doc(db, "settings", "profileContent"), profileContentSettings);
-            batch.set(doc(db, "settings", "ppdbSchedule"), ppdbScheduleSettings);
+            batch.set(doc(db, "settings", "schoolInfo"), JSON.parse(JSON.stringify(schoolInfoSettings)));
+            batch.set(doc(db, "settings", "profileContent"), JSON.parse(JSON.stringify(profileContentSettings)));
+            batch.set(doc(db, "settings", "ppdbSchedule"), JSON.parse(JSON.stringify(ppdbScheduleSettings)));
             
             addLog("Mengirim data ke Firestore... Ini mungkin memakan waktu beberapa saat.");
             await batch.commit();
