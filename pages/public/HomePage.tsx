@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { db } from '../../services/firebase';
-import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
+// FIX: Merged split 'firebase/firestore' imports into a single line to resolve parsing errors.
+import { collection, getDocs, query, orderBy, limit, doc, getDoc } from 'firebase/firestore';
 import { HomepageContent, NewsArticle } from '../../types';
 import { ArrowRight, LoaderCircle } from 'lucide-react';
-import { doc, getDoc } from 'firebase/firestore';
 
 const HomePage: React.FC = () => {
     const [content, setContent] = useState<HomepageContent | null>(null);
@@ -27,7 +27,7 @@ const HomePage: React.FC = () => {
                 const newsSnapshot = await getDocs(newsQuery);
                 const newsData = newsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as NewsArticle));
                 setLatestNews(newsData);
-            } catch (error) => {
+            } catch (error) {
                 console.error("Failed to fetch homepage data:", error);
             } finally {
                 setIsLoading(false);

@@ -77,10 +77,15 @@ export interface HomepageContent {
 }
 
 // For Gallery
-export interface GalleryImage {
-    id: string;
-    imageUrl: string;
-    caption: string;
-    category: string;
-    uploadedAt: string; // ISO date string
+export interface GalleryImageItem {
+  imageUrl: string;
+  caption: string;
+}
+
+export interface GalleryAlbum {
+  id: string;
+  title: string;
+  category: string;
+  images: GalleryImageItem[];
+  createdAt: string; // ISO date string for sorting
 }

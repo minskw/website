@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { db } from '../../services/firebase';
-import { doc, writeBatch } from 'firebase/firestore';
+// FIX: Added 'collection' to the import to resolve "Cannot find name 'collection'" error.
+import { doc, writeBatch, collection } from 'firebase/firestore';
 import { SCHOOL_INFO, SOCIAL_LINKS } from '../../constants';
 import { LoaderCircle } from 'lucide-react';
+import { GalleryAlbum } from '../../types';
 
 // Dummy data for seeding
 const initialHomepageContent = {
@@ -27,14 +29,35 @@ const initialPpdbSchedule = {
 const initialSchoolInfo = {
     info: { ...SCHOOL_INFO },
     socialLinks: { ...SOCIAL_LINKS }
-}
+};
+
+const initialGalleryAlbums: Omit<GalleryAlbum, 'id'>[] = [
+    {
+        title: "Peringatan 17 Agustus",
+        category: "Kegiatan",
+        createdAt: new Date().toISOString(),
+        images: [
+            { imageUrl: "https://picsum.photos/seed/17agustus-1/800/600", caption: "Lomba balap karung." },
+            { imageUrl: "https://picsum.photos/seed/17agustus-2/800/600", caption: "Upacara bendera." },
+        ]
+    },
+    {
+        title: "Juara Lomba Cerdas Cermat",
+        category: "Prestasi",
+        createdAt: new Date().toISOString(),
+        images: [
+            { imageUrl: "https://picsum.photos/seed/juara-1/800/600", caption: "Penyerahan piala oleh kepala sekolah." }
+        ]
+    }
+];
+
 
 const AdminSetupPage: React.FC = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [statusMessage, setStatusMessage] = useState('');
 
     const handleSeedDatabase = async () => {
-        if (!window.confirm("Apakah Anda yakin ingin melakukan setup awal? Ini akan menimpa pengaturan yang ada dengan data default.")) {
+        if (!window.confirm("Apakah Anda yakin ingin melakukan setup awal? Ini akan menimpa pengaturan dan galeri yang ada dengan data default.")) {
             return;
         }
 
@@ -45,21 +68,20 @@ const AdminSetupPage: React.FC = () => {
             const batch = writeBatch(db);
 
             // Settings documents
-            const homepageRef = doc(db, 'settings', 'homepageContent');
-            batch.set(homepageRef, initialHomepageContent);
+            batch.set(doc(db, 'settings', 'homepageContent'), initialHomepageContent);
+            batch.set(doc(db, 'settings', 'profileContent'), initialProfileContent);
+            batch.set(doc(db, 'settings', 'ppdbSchedule'), initialPpdbSchedule);
+            batch.set(doc(db, 'settings', 'schoolInfo'), initialSchoolInfo);
 
-            const profileRef = doc(db, 'settings', 'profileContent');
-            batch.set(profileRef, initialProfileContent);
-            
-            const ppdbRef = doc(db, 'settings', 'ppdbSchedule');
-            batch.set(ppdbRef, initialPpdbSchedule);
-
-            const schoolInfoRef = doc(db, 'settings', 'schoolInfo');
-            batch.set(schoolInfoRef, initialSchoolInfo);
+            // Gallery Albums
+            initialGalleryAlbums.forEach(album => {
+                const albumRef = doc(collection(db, 'gallery_albums'));
+                batch.set(albumRef, album);
+            });
             
             await batch.commit();
 
-            setStatusMessage('Setup awal berhasil! Pengaturan website telah diisi dengan data default.');
+            setStatusMessage('Setup awal berhasil! Pengaturan dan galeri telah diisi dengan data default.');
         } catch (error) {
             console.error("Database seeding failed:", error);
             setStatusMessage('Terjadi kesalahan saat setup. Silakan periksa konsol untuk detail.');
@@ -74,7 +96,7 @@ const AdminSetupPage: React.FC = () => {
             <p className="text-gray-600 mb-6">
                 Gunakan tombol di bawah ini untuk mengisi database dengan data awal (default). 
                 Ini berguna untuk penggunaan pertama kali atau untuk mereset pengaturan website.
-                <strong> Peringatan:</strong> Tindakan ini akan menimpa data pengaturan yang ada.
+                <strong> Peringatan:</strong> Tindakan ini akan menimpa data pengaturan dan galeri yang ada.
             </p>
             
             <button

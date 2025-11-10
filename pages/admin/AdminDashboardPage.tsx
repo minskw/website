@@ -17,7 +17,7 @@ const StatCard: React.FC<{ icon: React.ReactNode; title: string; value: number |
 
 const AdminDashboardPage: React.FC = () => {
     const { user } = useAuth();
-    const [stats, setStats] = useState({ teachers: 0, news: 0, applicants: 0, gallery: 0 });
+    const [stats, setStats] = useState({ teachers: 0, news: 0, applicants: 0, galleryAlbums: 0 });
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -26,7 +26,7 @@ const AdminDashboardPage: React.FC = () => {
                 const teachersPromise = getDocs(collection(db, 'teachers'));
                 const newsPromise = getDocs(collection(db, 'news'));
                 const applicantsPromise = getDocs(collection(db, 'ppdb_applicants'));
-                const galleryPromise = getDocs(collection(db, 'gallery'));
+                const galleryPromise = getDocs(collection(db, 'gallery_albums'));
 
                 const [teachersSnap, newsSnap, applicantsSnap, gallerySnap] = await Promise.all([
                     teachersPromise,
@@ -39,7 +39,7 @@ const AdminDashboardPage: React.FC = () => {
                     teachers: teachersSnap.size,
                     news: newsSnap.size,
                     applicants: applicantsSnap.size,
-                    gallery: gallerySnap.size,
+                    galleryAlbums: gallerySnap.size,
                 });
             } catch (error) {
                 console.error("Failed to fetch dashboard stats:", error);
@@ -80,8 +80,8 @@ const AdminDashboardPage: React.FC = () => {
                     />
                     <StatCard 
                         icon={<GalleryHorizontal size={32} className="text-purple-500" />}
-                        title="Foto Galeri"
-                        value={stats.gallery}
+                        title="Album Galeri"
+                        value={stats.galleryAlbums}
                         color="border-purple-500"
                     />
                 </div>
