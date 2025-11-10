@@ -1,10 +1,17 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Outlet, useLocation, Navigate } from 'react-router-dom';
+
+import React, { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Outlet, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 
-// Public components
+// Public Components
 import Header from './components/common/Header';
 import Footer from './components/common/Footer';
+
+// Admin Components
+import Sidebar from './components/admin/Sidebar';
+import AdminHeader from './components/admin/AdminHeader';
+
+// Public Pages
 import HomePage from './pages/public/HomePage';
 import ProfilePage from './pages/public/ProfilePage';
 import NewsPage from './pages/public/NewsPage';
@@ -15,103 +22,105 @@ import EventCalendarPage from './pages/public/EventCalendarPage';
 import PpdbPage from './pages/public/PpdbPage';
 import ContactPage from './pages/public/ContactPage';
 
-// Admin components
+// Admin Pages
 import AdminLoginPage from './pages/admin/AdminLoginPage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import AdminPpdbPage from './pages/admin/AdminPpdbPage';
 import AdminNewsPage from './pages/admin/AdminNewsPage';
-import AdminTeachersPage from './pages/admin/AdminTeachersPage';
 import AdminGalleryPage from './pages/admin/AdminGalleryPage';
+import AdminTeachersPage from './pages/admin/AdminTeachersPage';
 import AdminSettingsPage from './pages/admin/AdminSettingsPage';
 import AdminSetupPage from './pages/admin/AdminSetupPage';
-import Sidebar from './components/admin/Sidebar';
-import AdminHeader from './components/admin/AdminHeader';
-import { LoaderCircle } from 'lucide-react';
 
-// Layouts
-const PublicLayout = () => {
-  return (
+// Layout for public pages
+const PublicLayout = () => (
     <div className="flex flex-col min-h-screen">
-      <Header />
-      <main className="flex-grow pt-20">
-        <Outlet />
-      </main>
-      <Footer />
+        <Header />
+        <main className="flex-grow pt-20"> {/* pt-20 for fixed header */}
+            <Outlet />
+        </main>
+        <Footer />
     </div>
-  );
-};
+);
 
+// Layout for admin pages
 const AdminLayout = () => {
-    const [isSidebarOpen, setIsSidebarOpen] = React.useState(true);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     return (
         <div className="flex h-screen bg-gray-100">
             <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
             <div className="flex-1 flex flex-col overflow-hidden">
                 <AdminHeader isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} />
-                <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-4 sm:p-6">
-                    <Outlet />
+                <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100">
+                    <div className="container mx-auto px-6 py-8">
+                        <Outlet />
+                    </div>
                 </main>
             </div>
         </div>
     );
 };
 
+// Protected Route for Admin
+const ProtectedRoute: React.FC<{ children: JSX.Element }> = ({ children }) => {
+    const { user, loading } = useAuth();
+    const location = useLocation();
 
-// Protected Route
-const ProtectedRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
-  const { user, loading } = useAuth();
-  const location = useLocation();
+    if (loading) {
+        return <div>Loading...</div>; // Or a spinner component
+    }
 
-  if (loading) {
-    return <div className="flex justify-center items-center min-h-screen"><LoaderCircle className="animate-spin text-primary" size={48} /></div>;
-  }
+    if (!user) {
+        return <Navigate to="/admin/login" state={{ from: location }} replace />;
+    }
 
-  if (!user) {
-    return <Navigate to="/admin/login" state={{ from: location }} replace />;
-  }
-
-  return children;
+    return children;
 };
 
-const App: React.FC = () => {
+
+function App() {
   return (
     <AuthProvider>
       <Router>
         <Routes>
           {/* Public Routes */}
-          <Route path="/" element={<PublicLayout />}>
-            <Route index element={<HomePage />} />
-            <Route path="profil" element={<ProfilePage />} />
-            <Route path="berita" element={<NewsPage />} />
-            <Route path="berita/:id" element={<NewsPage />} />
-            <Route path="gtk" element={<GtkPage />} />
-            <Route path="guru/:id" element={<TeacherDetailPage />} />
-            <Route path="galeri" element={<GalleryPage />} />
-            <Route path="kalender-kegiatan" element={<EventCalendarPage />} />
-            <Route path="ppdb" element={<PpdbPage />} />
-            <Route path="kontak" element={<ContactPage />} />
+          <Route element={<PublicLayout />}>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/profil" element={<ProfilePage />} />
+            <Route path="/berita" element={<NewsPage />} />
+            <Route path="/berita/:id" element={<NewsPage />} />
+            <Route path="/gtk" element={<GtkPage />} />
+            <Route path="/guru/:id" element={<TeacherDetailPage />} />
+            <Route path="/galeri" element={<GalleryPage />} />
+            <Route path="/kalender-kegiatan" element={<EventCalendarPage />} />
+            <Route path="/ppdb" element={<PpdbPage />} />
+            <Route path="/kontak" element={<ContactPage />} />
           </Route>
 
           {/* Admin Routes */}
           <Route path="/admin/login" element={<AdminLoginPage />} />
-          <Route path="/admin" element={
-            <ProtectedRoute>
-              <AdminLayout />
-            </ProtectedRoute>
-          }>
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute>
+                <AdminLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+            <Route path="/admin/ppdb" element={<AdminPpdbPage />} />
+            <Route path="/admin/berita" element={<AdminNewsPage />} />
+            <Route path="/admin/galeri" element={<AdminGalleryPage />} />
+            <Route path="/admin/guru" element={<AdminTeachersPage />} />
+            <Route path="/admin/pengaturan" element={<AdminSettingsPage />} />
+            <Route path="/admin/setup" element={<AdminSetupPage />} />
             <Route index element={<Navigate to="/admin/dashboard" replace />} />
-            <Route path="dashboard" element={<AdminDashboardPage />} />
-            <Route path="ppdb" element={<AdminPpdbPage />} />
-            <Route path="berita" element={<AdminNewsPage />} />
-            <Route path="galeri" element={<AdminGalleryPage />} />
-            <Route path="guru" element={<AdminTeachersPage />} />
-            <Route path="pengaturan" element={<AdminSettingsPage />} />
-            <Route path="setup" element={<AdminSetupPage />} />
           </Route>
+
         </Routes>
       </Router>
     </AuthProvider>
   );
-};
+}
 
 export default App;

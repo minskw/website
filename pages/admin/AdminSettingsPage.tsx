@@ -1,206 +1,205 @@
-import React, { useState, useEffect, FormEvent, useMemo } from 'react';
+
+import React, { useState, useEffect, FormEvent } from 'react';
 import { db } from '../../services/firebase';
-import { doc, getDoc, setDoc, onSnapshot, collection, addDoc, updateDoc, deleteDoc, query, orderBy } from 'firebase/firestore';
-import { LoaderCircle, Save, AlertCircle, Trash2, PlusCircle } from 'lucide-react';
-import { ImportantLink, HomepageContent, SchoolEvent } from '../../types';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { HomepageContent, ProfileContent, PpdbScheduleData, SchoolInfoSettings } from '../../types';
+import { LoaderCircle, Save, AlertCircle } from 'lucide-react';
 
-// Define interfaces for the settings data
-interface SchoolInfoData {
-    name: string;
-    address: string;
-    email: string;
-    phone: string;
-    logo: string;
-    affiliation: string;
-}
-
-interface SocialLinksData {
-    facebook: string;
-    instagram: string;
-    youtube: string;
-}
-
-interface ProfileContentData {
-    vision: string;
-    mission: string;
-    orgChartUrl: string;
-}
-
-interface PpdbScheduleData {
-    startDate: string;
-    endDate: string;
-    announcementDate: string;
-}
-
-// Main state for all settings
-interface AllSettings {
-    schoolInfo: {
-        info: SchoolInfoData;
-        socialLinks: SocialLinksData;
-        importantLinks: ImportantLink[];
-    };
-    homepageContent: HomepageContent;
-    profileContent: ProfileContentData;
-    ppdbSchedule: PpdbScheduleData;
-}
+type SettingsTab = 'homepage' | 'profile' | 'ppdb' | 'schoolInfo';
 
 const AdminSettingsPage: React.FC = () => {
-    const [settings, setSettings] = useState<AllSettings | null>(null);
-    const [events, setEvents] = useState<SchoolEvent[]>([]);
+    const [activeTab, setActiveTab] = useState<SettingsTab>('homepage');
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [successMessage, setSuccessMessage] = useState<string | null>(null);
-    const [activeTab, setActiveTab] = useState('homepage');
+    const [statusMessage, setStatusMessage] = useState('');
+
+    const [homepageData, setHomepageData] = useState<HomepageContent | null>(null);
+    const [profileData, setProfileData] = useState<ProfileContent | null>(null);
+    const [ppdbData, setPpdbData] = useState<PpdbScheduleData | null>(null);
+    const [schoolInfoData, setSchoolInfoData] = useState<SchoolInfoSettings | null>(null);
 
     useEffect(() => {
-        const fetchAllSettings = async () => {
-             try {
-                const schoolInfoSnap = await getDoc(doc(db, 'settings', 'schoolInfo'));
-                const homepageContentSnap = await getDoc(doc(db, 'settings', 'homepageContent'));
-                const profileContentSnap = await getDoc(doc(db, 'settings', 'profileContent'));
-                const ppdbScheduleSnap = await getDoc(doc(db, 'settings', 'ppdbSchedule'));
+        const fetchSettings = async () => {
+            setIsLoading(true);
+            setError(null);
+            try {
+                const settingsToFetch = {
+                    homepageContent: setHomepageData,
+                    profileContent: setProfileData,
+                    ppdbSchedule: setPpdbData,
+                    schoolInfo: setSchoolInfoData
+                };
 
-                if (schoolInfoSnap.exists() && homepageContentSnap.exists() && profileContentSnap.exists() && ppdbScheduleSnap.exists()) {
-                    setSettings({
-                        schoolInfo: schoolInfoSnap.data() as AllSettings['schoolInfo'],
-                        homepageContent: homepageContentSnap.data() as HomepageContent,
-                        profileContent: profileContentSnap.data() as ProfileContentData,
-                        ppdbSchedule: ppdbScheduleSnap.data() as PpdbScheduleData,
-                    });
-                } else {
-                    setError("Beberapa data pengaturan tidak ditemukan. Harap jalankan 'Setup Awal' terlebih dahulu.");
-                }
+                const promises = Object.entries(settingsToFetch).map(async ([docId, setter]) => {
+                    const docRef = doc(db, 'settings', docId);
+                    const docSnap = await getDoc(docRef);
+                    if (docSnap.exists()) {
+                        setter(docSnap.data() as any);
+                    } else {
+                         console.warn(`Settings document '${docId}' not found.`);
+                    }
+                });
+
+                await Promise.all(promises);
+
             } catch (err) {
                 console.error("Failed to fetch settings:", err);
-                setError("Gagal memuat pengaturan.");
+                setError("Gagal memuat pengaturan. Silakan coba lagi.");
             } finally {
-                 setIsLoading(false);
+                setIsLoading(false);
             }
         };
-
-        const q = query(collection(db, "events"), orderBy("date", "desc"));
-        const unsubscribeEvents = onSnapshot(q, (snapshot) => {
-            setEvents(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as SchoolEvent)));
-        });
-
-        fetchAllSettings();
-        
-        return () => {
-            unsubscribeEvents();
-        };
-
+        fetchSettings();
     }, []);
-
-     const handleInputChange = (section: keyof AllSettings | 'schoolInfo.info' | 'schoolInfo.socialLinks', field: string, value: string) => {
-        setSettings(prev => {
-            if (!prev) return null;
-
-            if (section === 'schoolInfo.info') {
-                return { ...prev, schoolInfo: { ...prev.schoolInfo, info: { ...prev.schoolInfo.info, [field]: value } } };
-            }
-            if (section === 'schoolInfo.socialLinks') {
-                return { ...prev, schoolInfo: { ...prev.schoolInfo, socialLinks: { ...prev.schoolInfo.socialLinks, [field]: value } } };
-            }
-
-            return { ...prev, [section]: { ...prev[section as keyof AllSettings], [field]: value } };
-        });
-    };
     
-    // ... (rest of the handler functions: handleImportantLinkChange, addImportantLink, removeImportantLink)
-
-    const handleSubmit = async (e: FormEvent) => {
+    const handleSave = async (e: FormEvent, docId: string, data: any) => {
         e.preventDefault();
-        if (!settings) return;
-        
         setIsSaving(true);
-        setSuccessMessage(null);
-        setError(null);
-        
+        setStatusMessage('');
         try {
-            await setDoc(doc(db, 'settings', 'schoolInfo'), settings.schoolInfo);
-            await setDoc(doc(db, 'settings', 'homepageContent'), settings.homepageContent);
-            await setDoc(doc(db, 'settings', 'profileContent'), settings.profileContent);
-            await setDoc(doc(db, 'settings', 'ppdbSchedule'), settings.ppdbSchedule);
-            setSuccessMessage("Pengaturan berhasil disimpan!");
+            await setDoc(doc(db, 'settings', docId), data, { merge: true });
+            setStatusMessage('Pengaturan berhasil disimpan!');
+            setTimeout(() => setStatusMessage(''), 3000);
         } catch (err) {
-            console.error("Failed to save settings:", err);
-            setError("Gagal menyimpan pengaturan.");
+            console.error(`Failed to save ${docId}:`, err);
+            setStatusMessage('Gagal menyimpan pengaturan.');
         } finally {
             setIsSaving(false);
-            setTimeout(() => setSuccessMessage(null), 3000);
         }
     };
     
     const renderContent = () => {
-        switch(activeTab) {
+        if (isLoading) {
+            return <div className="flex justify-center items-center h-64"><LoaderCircle className="animate-spin text-primary" size={32} /></div>;
+        }
+        if (error) {
+            return <div className="text-center text-red-500 bg-red-100 p-4 rounded-md flex items-center gap-2"><AlertCircle /> {error}</div>;
+        }
+
+        switch (activeTab) {
             case 'homepage':
-                return (
-                    <section className="bg-white p-6 rounded-lg shadow-md">
-                        <h2 className="text-xl font-bold mb-4">Pengaturan Halaman Beranda</h2>
-                        <div className="space-y-4">
-                            <div><label className="text-sm font-medium">Judul Sambutan</label><input value={settings!.homepageContent.welcomeTitle} onChange={e => handleInputChange('homepageContent', 'welcomeTitle', e.target.value)} className="w-full p-2 border rounded mt-1" /></div>
-                            <div><label className="text-sm font-medium">Teks Sambutan</label><textarea value={settings!.homepageContent.welcomeText} onChange={e => handleInputChange('homepageContent', 'welcomeText', e.target.value)} className="w-full p-2 border rounded h-24 mt-1" /></div>
-                            <div><label className="text-sm font-medium">URL Gambar Latar (Hero)</label><input value={settings!.homepageContent.heroImageUrl} onChange={e => handleInputChange('homepageContent', 'heroImageUrl', e.target.value)} className="w-full p-2 border rounded mt-1" /></div>
-                            <div><label className="text-sm font-medium">URL Gambar Sambutan</label><input value={settings!.homepageContent.welcomeImageUrl} onChange={e => handleInputChange('homepageContent', 'welcomeImageUrl', e.target.value)} className="w-full p-2 border rounded mt-1" /></div>
-                        </div>
-                    </section>
-                );
-            // ... (other cases for 'info', 'profile', 'ppdb', 'links', 'calendar')
+                return homepageData && <HomepageForm data={homepageData} setData={setHomepageData} onSave={handleSave} isSaving={isSaving} />;
+            case 'profile':
+                return profileData && <ProfileForm data={profileData} setData={setProfileData} onSave={handleSave} isSaving={isSaving} />;
+            case 'ppdb':
+                return ppdbData && <PpdbForm data={ppdbData} setData={setPpdbData} onSave={handleSave} isSaving={isSaving} />;
+            case 'schoolInfo':
+                 return schoolInfoData && <SchoolInfoForm data={schoolInfoData} setData={setSchoolInfoData} onSave={handleSave} isSaving={isSaving} />;
             default:
                 return null;
         }
-    }
+    };
 
-
-    if (isLoading) {
-        return <div className="flex justify-center items-center h-full"><LoaderCircle className="animate-spin text-primary" size={32} /></div>;
-    }
-    
-    if (error && !settings) {
-        return <div className="bg-red-100 text-red-700 p-4 rounded-md flex items-center gap-2"><AlertCircle size={20} />{error}</div>;
-    }
-
-    if (!settings) {
-         return <div className="text-center p-8">Data pengaturan tidak dapat dimuat.</div>;
-    }
-
-    const TABS = [
-        { id: 'homepage', label: 'Beranda' },
-        { id: 'info', label: 'Info Umum' },
-        { id: 'profile', label: 'Profil' },
-        { id: 'ppdb', label: 'Jadwal PPDB' },
-        { id: 'links', label: 'Tautan' },
-        { id: 'calendar', label: 'Kalender' },
-    ];
-    
-    // Simplified render method for brevity
     return (
-        <div className="space-y-6">
-            <h1 className="text-2xl font-bold text-gray-800">Pengaturan Website</h1>
+        <div className="bg-white p-6 rounded-lg shadow-md">
+            <h1 className="text-2xl font-bold text-gray-800 mb-6">Pengaturan Website</h1>
+            
+             {statusMessage && (
+                <div className={`mb-4 p-3 rounded-md text-sm ${statusMessage.includes('berhasil') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                    {statusMessage}
+                </div>
+            )}
+            
             <div className="border-b border-gray-200">
-                <nav className="-mb-px flex space-x-6 overflow-x-auto">
-                    {TABS.map(tab => (
-                         <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === tab.id ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>
-                            {tab.label}
+                <nav className="-mb-px flex space-x-8" aria-label="Tabs">
+                    {(['homepage', 'profile', 'ppdb', 'schoolInfo'] as SettingsTab[]).map(tab => (
+                        <button
+                            key={tab}
+                            onClick={() => setActiveTab(tab)}
+                            className={`${
+                                activeTab === tab
+                                    ? 'border-primary text-primary'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm capitalize`}
+                        >
+                            {tab === 'schoolInfo' ? 'Info Sekolah' : tab}
                         </button>
                     ))}
                 </nav>
             </div>
-
-            <form onSubmit={handleSubmit}>
-                {/* Render active tab content here */}
-                {renderContent()}
-
-                <div className="bg-white p-4 rounded-lg shadow-md sticky bottom-4 mt-6">
-                    {successMessage && <p className="text-green-500 text-sm mb-2 text-center">{successMessage}</p>}
-                    <button type="submit" disabled={isSaving} className="w-full bg-primary text-white font-bold py-3 px-4 rounded-lg hover:bg-primary-dark transition-colors disabled:bg-gray-400 flex items-center justify-center gap-2">
-                        {isSaving ? <LoaderCircle className="animate-spin" /> : <Save />} 
-                        Simpan Semua Perubahan
-                    </button>
-                </div>
-            </form>
+            
+            <div className="mt-6">{renderContent()}</div>
         </div>
+    );
+};
+
+// Sub-components for forms
+
+const FormField: React.FC<{ label: string; children: React.ReactNode; helpText?: string }> = ({ label, children, helpText }) => (
+    <div>
+        <label className="block text-sm font-medium text-gray-700">{label}</label>
+        {children}
+        {helpText && <p className="mt-1 text-xs text-gray-500">{helpText}</p>}
+    </div>
+);
+
+const SaveButton: React.FC<{ isSaving: boolean }> = ({ isSaving }) => (
+     <button type="submit" disabled={isSaving} className="mt-4 inline-flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark disabled:bg-gray-400">
+        {isSaving ? <LoaderCircle className="animate-spin" size={18} /> : <Save size={18} />}
+        {isSaving ? 'Menyimpan...' : 'Simpan Perubahan'}
+    </button>
+);
+
+const HomepageForm: React.FC<{ data: HomepageContent; setData: Function; onSave: Function; isSaving: boolean }> = ({ data, setData, onSave, isSaving }) => (
+    <form onSubmit={(e) => onSave(e, 'homepageContent', data)} className="space-y-4">
+        <FormField label="URL Gambar Hero"><input type="text" value={data.heroImageUrl} onChange={e => setData({ ...data, heroImageUrl: e.target.value })} className="mt-1 w-full p-2 border rounded" /></FormField>
+        <FormField label="Judul Selamat Datang"><input type="text" value={data.welcomeTitle} onChange={e => setData({ ...data, welcomeTitle: e.target.value })} className="mt-1 w-full p-2 border rounded" /></FormField>
+        <FormField label="Teks Selamat Datang"><textarea value={data.welcomeText} onChange={e => setData({ ...data, welcomeText: e.target.value })} className="mt-1 w-full p-2 border rounded h-24" /></FormField>
+        <FormField label="URL Gambar Selamat Datang"><input type="text" value={data.welcomeImageUrl} onChange={e => setData({ ...data, welcomeImageUrl: e.target.value })} className="mt-1 w-full p-2 border rounded" /></FormField>
+        <SaveButton isSaving={isSaving} />
+    </form>
+);
+
+const ProfileForm: React.FC<{ data: ProfileContent; setData: Function; onSave: Function; isSaving: boolean }> = ({ data, setData, onSave, isSaving }) => (
+    <form onSubmit={(e) => onSave(e, 'profileContent', data)} className="space-y-4">
+        <FormField label="Visi Sekolah"><textarea value={data.vision} onChange={e => setData({ ...data, vision: e.target.value })} className="mt-1 w-full p-2 border rounded h-24" /></FormField>
+        <FormField label="Misi Sekolah" helpText="Pisahkan setiap poin misi dengan baris baru (Enter)."><textarea value={data.mission} onChange={e => setData({ ...data, mission: e.target.value })} className="mt-1 w-full p-2 border rounded h-32" /></FormField>
+        <FormField label="URL Gambar Struktur Organisasi"><input type="text" value={data.orgChartUrl} onChange={e => setData({ ...data, orgChartUrl: e.target.value })} className="mt-1 w-full p-2 border rounded" /></FormField>
+        <SaveButton isSaving={isSaving} />
+    </form>
+);
+
+const PpdbForm: React.FC<{ data: PpdbScheduleData; setData: Function; onSave: Function; isSaving: boolean }> = ({ data, setData, onSave, isSaving }) => (
+    <form onSubmit={(e) => onSave(e, 'ppdbSchedule', data)} className="space-y-4">
+        <FormField label="Tanggal Mulai Pendaftaran"><input type="date" value={data.startDate} onChange={e => setData({ ...data, startDate: e.target.value })} className="mt-1 w-full p-2 border rounded" /></FormField>
+        <FormField label="Tanggal Selesai Pendaftaran"><input type="date" value={data.endDate} onChange={e => setData({ ...data, endDate: e.target.value })} className="mt-1 w-full p-2 border rounded" /></FormField>
+        <FormField label="Tanggal Pengumuman"><input type="date" value={data.announcementDate} onChange={e => setData({ ...data, announcementDate: e.target.value })} className="mt-1 w-full p-2 border rounded" /></FormField>
+        <SaveButton isSaving={isSaving} />
+    </form>
+);
+
+const SchoolInfoForm: React.FC<{ data: SchoolInfoSettings; setData: Function; onSave: Function; isSaving: boolean }> = ({ data, setData, onSave, isSaving }) => {
+    const handleInfoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setData({ ...data, info: { ...data.info, [e.target.name]: e.target.value } });
+    };
+    const handleSocialChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setData({ ...data, socialLinks: { ...data.socialLinks, [e.target.name]: e.target.value } });
+    };
+    return (
+    <form onSubmit={(e) => onSave(e, 'schoolInfo', data)} className="space-y-6">
+        <div>
+            <h3 className="text-lg font-medium text-gray-900">Informasi Umum</h3>
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField label="Nama Sekolah"><input name="name" type="text" value={data.info.name} onChange={handleInfoChange} className="mt-1 w-full p-2 border rounded" /></FormField>
+                <FormField label="Afiliasi"><input name="affiliation" type="text" value={data.info.affiliation} onChange={handleInfoChange} className="mt-1 w-full p-2 border rounded" /></FormField>
+                <FormField label="Alamat"><input name="address" type="text" value={data.info.address} onChange={handleInfoChange} className="mt-1 w-full p-2 border rounded" /></FormField>
+                <FormField label="Email"><input name="email" type="email" value={data.info.email} onChange={handleInfoChange} className="mt-1 w-full p-2 border rounded" /></FormField>
+                <FormField label="Telepon"><input name="phone" type="tel" value={data.info.phone} onChange={handleInfoChange} className="mt-1 w-full p-2 border rounded" /></FormField>
+                <FormField label="URL Logo"><input name="logo" type="text" value={data.info.logo} onChange={handleInfoChange} className="mt-1 w-full p-2 border rounded" /></FormField>
+            </div>
+        </div>
+         <div>
+            <h3 className="text-lg font-medium text-gray-900">Media Sosial</h3>
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField label="URL Facebook"><input name="facebook" type="text" value={data.socialLinks.facebook} onChange={handleSocialChange} className="mt-1 w-full p-2 border rounded" /></FormField>
+                <FormField label="URL Instagram"><input name="instagram" type="text" value={data.socialLinks.instagram} onChange={handleSocialChange} className="mt-1 w-full p-2 border rounded" /></FormField>
+                <FormField label="URL Youtube"><input name="youtube" type="text" value={data.socialLinks.youtube} onChange={handleSocialChange} className="mt-1 w-full p-2 border rounded" /></FormField>
+            </div>
+        </div>
+        {/* Important Links editing can be complex, for now let's skip it to keep it simpler. It is seeded in setup page. */}
+        <SaveButton isSaving={isSaving} />
+    </form>
     );
 };
 
