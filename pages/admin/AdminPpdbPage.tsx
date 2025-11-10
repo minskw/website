@@ -1,7 +1,11 @@
-import React, { useState, useMemo } from 'react';
-import { mockPpdbApplicants, ppdbSchedule } from '../../services/mockApi';
+import React, { useState, useMemo, useEffect } from 'react';
 import { PpdbApplicant, PpdbStatus, AIVerificationStatus } from '../../types';
 import { Search, ChevronDown, Check, X, Clock, Eye, Bot, Edit, Download, Trash2, UserPlus } from 'lucide-react';
+
+// Firebase imports
+import { db } from '../../services/firebase';
+import { collection, getDocs, updateDoc, doc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
 
 const getStatusBadge = (status: PpdbStatus) => {
     switch (status) {
@@ -32,11 +36,26 @@ const getAIVerificationBadge = (status: AIVerificationStatus) => {
 
 
 const AdminPpdbPage: React.FC = () => {
-    const [applicants, setApplicants] = useState<PpdbApplicant[]>(mockPpdbApplicants);
+    const [applicants, setApplicants] = useState<PpdbApplicant[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedApplicant, setSelectedApplicant] = useState<PpdbApplicant | null>(null);
     const [editingApplicant, setEditingApplicant] = useState<PpdbApplicant | null>(null);
     const [isVerifying, setIsVerifying] = useState<string | null>(null); // applicant id
+
+    const applicantsCollectionRef = collection(db, "ppdb_applicants");
+
+    useEffect(() => {
+        const getApplicants = async () => {
+            setIsLoading(true);
+            const q = query(applicantsCollectionRef, orderBy("submissionDate", "desc"));
+            const data = await getDocs(q);
+            const applicantsData = data.docs.map(doc => ({ ...doc.data(), id: doc.id } as PpdbApplicant));
+            setApplicants(applicantsData);
+            setIsLoading(false);
+        };
+        getApplicants();
+    }, []);
 
     const filteredApplicants = useMemo(() => {
         return applicants.filter(app =>
@@ -45,22 +64,23 @@ const AdminPpdbPage: React.FC = () => {
         );
     }, [applicants, searchTerm]);
 
-    const handleStatusChange = (id: string, newStatus: PpdbStatus) => {
+    const handleStatusChange = async (id: string, newStatus: PpdbStatus) => {
+        const applicantDoc = doc(db, "ppdb_applicants", id);
+        await updateDoc(applicantDoc, { status: newStatus });
         setApplicants(prev => prev.map(app => app.id === id ? { ...app, status: newStatus } : app));
     };
 
     const handleAIVerify = (id: string) => {
         setIsVerifying(id);
         // Simulate Gemini API call
-        setTimeout(() => {
-            setApplicants(prev => prev.map(app => {
-                if (app.id === id) {
-                    const statuses = [AIVerificationStatus.VERIFIED, AIVerificationStatus.MANUAL_REVIEW];
-                    const newStatus = statuses[Math.floor(Math.random() * statuses.length)];
-                    return { ...app, aiVerificationStatus: newStatus };
-                }
-                return app;
-            }));
+        setTimeout(async () => {
+            const statuses = [AIVerificationStatus.VERIFIED, AIVerificationStatus.MANUAL_REVIEW];
+            const newStatus = statuses[Math.floor(Math.random() * statuses.length)];
+            
+            const applicantDoc = doc(db, "ppdb_applicants", id);
+            await updateDoc(applicantDoc, { aiVerificationStatus: newStatus });
+            
+            setApplicants(prev => prev.map(app => app.id === id ? { ...app, aiVerificationStatus: newStatus } : app));
             setIsVerifying(null);
         }, 2000);
     }
@@ -73,8 +93,11 @@ const AdminPpdbPage: React.FC = () => {
         setEditingApplicant(null);
     };
 
-    const handleUpdateApplicant = () => {
+    const handleUpdateApplicant = async () => {
         if (!editingApplicant) return;
+        const { id, ...applicantData } = editingApplicant;
+        const applicantDoc = doc(db, "ppdb_applicants", id);
+        await updateDoc(applicantDoc, applicantData);
         setApplicants(prev => prev.map(app => app.id === editingApplicant.id ? editingApplicant : app));
         closeEditModal();
     };
@@ -165,6 +188,9 @@ const AdminPpdbPage: React.FC = () => {
             </div>
 
             <div className="overflow-x-auto">
+                 {isLoading ? (
+                    <p className="text-center py-8">Memuat data pendaftar...</p>
+                ) : (
                 <table className="w-full text-sm text-left text-gray-500">
                     <thead className="text-xs text-gray-700 uppercase bg-gray-50">
                         <tr>
@@ -217,7 +243,8 @@ const AdminPpdbPage: React.FC = () => {
                         ))}
                     </tbody>
                 </table>
-                 {filteredApplicants.length === 0 && <p className="text-center text-gray-500 py-8">Tidak ada data pendaftar.</p>}
+                 )}
+                 {filteredApplicants.length === 0 && !isLoading && <p className="text-center text-gray-500 py-8">Tidak ada data pendaftar.</p>}
             </div>
             {renderDetailModal()}
             {renderEditModal()}

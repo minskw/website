@@ -1,29 +1,85 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SCHOOL_INFO } from '../../constants';
-import { mockEvents, ppdbSchedule, mockParents, mockStudents } from '../../services/mockApi';
 import { SchoolEvent } from '../../types';
 import { Info, Calendar, UserCheck, Users, Save, PlusCircle, Edit, Trash2, X, Building, Flag, Eye } from 'lucide-react';
 
+// Firebase imports
+import { db } from '../../services/firebase';
+import { collection, getDocs, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+
 const AdminSettingsPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState('umum');
+    const [isLoading, setIsLoading] = useState(true);
 
     // --- State for each tab ---
     const [schoolInfo, setSchoolInfo] = useState(SCHOOL_INFO);
-    const [socialLinks, setSocialLinks] = useState({ facebook: 'https://facebook.com', instagram: 'https://instagram.com', youtube: 'https://youtube.com' });
+    const [socialLinks, setSocialLinks] = useState({ facebook: '', instagram: '', youtube: '' });
     const [profileContent, setProfileContent] = useState({
-        history: `${SCHOOL_INFO.name} didirikan pada tahun ${SCHOOL_INFO.founded} sebagai respons atas kebutuhan masyarakat akan pendidikan dasar Islam yang berkualitas. Berawal dari sebuah bangunan sederhana, ${SCHOOL_INFO.name} terus berkembang menjadi salah satu madrasah unggulan di Kota Singkawang, dengan fasilitas yang memadai dan prestasi yang membanggakan baik di bidang akademik maupun non-akademik.`,
-        vision: 'Terwujudnya peserta didik yang berakhlak mulia, cerdas, terampil, dan berprestasi berdasarkan iman dan takwa.',
-        mission: 'Menanamkan akidah dan akhlak mulia melalui pembiasaan.\nMengoptimalkan proses pembelajaran yang aktif, inovatif, kreatif, efektif, dan menyenangkan.\nMengembangkan potensi siswa di bidang akademik dan non-akademik.\nMenciptakan lingkungan madrasah yang religius, aman, dan nyaman.',
-        orgChartUrl: 'https://via.placeholder.com/800x500.png?text=Bagan+Struktur+Organisasi'
+        vision: '',
+        mission: '',
+        orgChartUrl: ''
     });
-    const [schedule, setSchedule] = useState(ppdbSchedule);
-    const [events, setEvents] = useState<SchoolEvent[]>(mockEvents);
+    const [schedule, setSchedule] = useState({ startDate: '', endDate: '', verificationDeadline: '', announcementDate: ''});
+    const [events, setEvents] = useState<SchoolEvent[]>([]);
     const [isEventModalOpen, setIsEventModalOpen] = useState(false);
     const [currentEvent, setCurrentEvent] = useState<SchoolEvent | null>(null);
+    
+    // --- Firestore Refs ---
+    const settingsCollectionRef = collection(db, "settings");
+    const eventsCollectionRef = collection(db, "events");
+
+    // --- Data Fetching ---
+    useEffect(() => {
+        const fetchData = async () => {
+            setIsLoading(true);
+            
+            // Fetch School Info
+            const schoolInfoDoc = await getDoc(doc(settingsCollectionRef, "schoolInfo"));
+            if (schoolInfoDoc.exists()) {
+                const data = schoolInfoDoc.data();
+                setSchoolInfo(prev => ({...prev, ...data.info}));
+                setSocialLinks(data.socialLinks);
+            }
+
+             // Fetch Profile Content
+            const profileDoc = await getDoc(doc(settingsCollectionRef, "profileContent"));
+            if (profileDoc.exists()) {
+                setProfileContent(profileDoc.data() as any);
+            }
+
+            // Fetch PPDB Schedule
+            const scheduleDoc = await getDoc(doc(settingsCollectionRef, "ppdbSchedule"));
+            if (scheduleDoc.exists()) {
+                setSchedule(scheduleDoc.data() as any);
+            }
+            
+            // Fetch Events
+            const eventsQuery = query(eventsCollectionRef, orderBy("date", "desc"));
+            const eventsSnapshot = await getDocs(eventsQuery);
+            setEvents(eventsSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as SchoolEvent)));
+
+            setIsLoading(false);
+        };
+        fetchData();
+    }, []);
+
 
     // --- Handlers ---
-    const handleSave = (section: string) => {
-        alert(`Pengaturan untuk seksi '${section}' telah disimpan! (Simulasi)`);
+    const handleSave = async (section: string) => {
+        try {
+            if (section === 'Informasi Umum') {
+                await setDoc(doc(settingsCollectionRef, "schoolInfo"), { info: schoolInfo, socialLinks });
+            } else if (section === 'Halaman Profil') {
+                await setDoc(doc(settingsCollectionRef, "profileContent"), profileContent);
+            } else if (section === 'Jadwal PPDB') {
+                await setDoc(doc(settingsCollectionRef, "ppdbSchedule"), schedule);
+            }
+             alert(`Pengaturan untuk seksi '${section}' telah disimpan!`);
+        } catch (error) {
+            console.error("Error saving settings: ", error);
+            alert(`Gagal menyimpan pengaturan untuk '${section}'.`);
+        }
     };
     
     const inputClass = "w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary bg-white text-gray-900";
@@ -31,7 +87,7 @@ const AdminSettingsPage: React.FC = () => {
 
     const openEventModal = (event: SchoolEvent | null = null) => {
         setCurrentEvent(event ? { ...event } : {
-            id: `evt-${Date.now()}`,
+            id: '',
             title: '',
             date: '',
             time: '',
@@ -44,19 +100,22 @@ const AdminSettingsPage: React.FC = () => {
 
     const closeEventModal = () => setIsEventModalOpen(false);
 
-    const handleSaveEvent = () => {
+    const handleSaveEvent = async () => {
         if (!currentEvent) return;
-        const isEditing = events.some(e => e.id === currentEvent.id);
-        if (isEditing) {
-            setEvents(events.map(e => e.id === currentEvent.id ? currentEvent : e));
-        } else {
-            setEvents([currentEvent, ...events]);
+        const { id, ...eventData } = currentEvent;
+        if (id) { // Update
+            await updateDoc(doc(eventsCollectionRef, id), eventData);
+            setEvents(events.map(e => e.id === id ? currentEvent : e));
+        } else { // Create
+            const docRef = await addDoc(eventsCollectionRef, eventData);
+            setEvents([{...currentEvent, id: docRef.id}, ...events]);
         }
         closeEventModal();
     };
 
-    const handleDeleteEvent = (id: string) => {
+    const handleDeleteEvent = async (id: string) => {
         if (window.confirm('Yakin ingin menghapus acara ini?')) {
+            await deleteDoc(doc(eventsCollectionRef, id));
             setEvents(events.filter(e => e.id !== id));
         }
     };
@@ -69,7 +128,6 @@ const AdminSettingsPage: React.FC = () => {
         { id: 'profil', label: 'Halaman Profil', icon: <Building size={18} /> },
         { id: 'ppdb', label: 'Jadwal PPDB', icon: <UserCheck size={18} /> },
         { id: 'kalender', label: 'Kalender Kegiatan', icon: <Calendar size={18} /> },
-        { id: 'portal', label: 'Portal Wali Murid', icon: <Users size={18} /> },
     ];
 
     const renderGeneralInfo = () => (
@@ -147,7 +205,7 @@ const AdminSettingsPage: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {events.sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime()).map(event => (
+                            {events.map(event => (
                                 <tr key={event.id} className="border-b hover:bg-gray-50">
                                     <td className="px-4 py-2">{event.date}</td>
                                     <td className="px-4 py-2 font-medium">{event.title}</td>
@@ -166,7 +224,7 @@ const AdminSettingsPage: React.FC = () => {
                 <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
                      <div className="bg-white rounded-lg shadow-xl w-full max-w-lg">
                         <div className="p-4 border-b flex justify-between items-center">
-                            <h4 className="font-bold">{currentEvent.id.startsWith('evt-') ? 'Edit Acara' : 'Tambah Acara Baru'}</h4>
+                            <h4 className="font-bold">{currentEvent.id ? 'Edit Acara' : 'Tambah Acara Baru'}</h4>
                             <button onClick={closeEventModal}><X/></button>
                         </div>
                         <div className="p-4 space-y-3 max-h-[70vh] overflow-y-auto">
@@ -193,40 +251,16 @@ const AdminSettingsPage: React.FC = () => {
         </div>
     );
 
-    const renderParentPortal = () => (
-         <div className="space-y-6">
-            <div className="p-5 border rounded-lg">
-                 <h3 className="text-lg font-bold text-gray-700 mb-4">Data Wali Murid & Siswa</h3>
-                 <p className="text-sm text-gray-600 mb-4">Berikut adalah daftar akun wali murid dan siswa yang terdaftar di portal. Manajemen detail akun dapat dilakukan di modul terpisah.</p>
-                 <div className="overflow-x-auto">
-                     <table className="w-full text-sm text-left">
-                        <thead className="bg-gray-50">
-                            <tr>
-                                <th className="px-4 py-2">Username Wali</th>
-                                <th className="px-4 py-2">Nama Wali Murid</th>
-                                <th className="px-4 py-2">Nama Siswa</th>
-                                <th className="px-4 py-2">Kelas</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {mockParents.map(parent => {
-                                const student = mockStudents.find(s => s.id === parent.studentId);
-                                return (
-                                     <tr key={parent.id} className="border-b hover:bg-gray-50">
-                                        <td className="px-4 py-2 font-mono text-xs">{parent.username}</td>
-                                        <td className="px-4 py-2 font-medium">{parent.name}</td>
-                                        <td className="px-4 py-2">{student?.name || 'N/A'}</td>
-                                        <td className="px-4 py-2">{student?.class || 'N/A'}</td>
-                                    </tr>
-                                )
-                            })}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    );
-
+    const renderContent = () => {
+        if (isLoading) return <p className="text-center py-8">Memuat pengaturan...</p>;
+        switch (activeTab) {
+            case 'umum': return renderGeneralInfo();
+            case 'profil': return renderProfileSettings();
+            case 'ppdb': return renderPpdbSchedule();
+            case 'kalender': return renderCalendarManagement();
+            default: return null;
+        }
+    }
 
     return (
         <div className="bg-white p-6 rounded-lg shadow-md">
@@ -247,13 +281,7 @@ const AdminSettingsPage: React.FC = () => {
                 ))}
             </div>
             
-            <div>
-                {activeTab === 'umum' && renderGeneralInfo()}
-                {activeTab === 'profil' && renderProfileSettings()}
-                {activeTab === 'ppdb' && renderPpdbSchedule()}
-                {activeTab === 'kalender' && renderCalendarManagement()}
-                {activeTab === 'portal' && renderParentPortal()}
-            </div>
+            <div>{renderContent()}</div>
         </div>
     );
 };

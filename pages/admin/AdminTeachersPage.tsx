@@ -1,17 +1,35 @@
-import React, { useState, useMemo } from 'react';
-import { mockTeachers } from '../../services/mockApi';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Teacher } from '../../types';
 import { PlusCircle, Edit, Trash2, X, Eye, Search, ArrowUp, ArrowDown } from 'lucide-react';
+
+// Firebase imports
+import { db } from '../../services/firebase';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 type SortKey = 'name' | 'subject';
 
 const AdminTeachersPage: React.FC = () => {
-    const [teachers, setTeachers] = useState<Teacher[]>(mockTeachers);
+    const [teachers, setTeachers] = useState<Teacher[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [currentTeacher, setCurrentTeacher] = useState<Teacher | null>(null);
     const [viewingTeacher, setViewingTeacher] = useState<Teacher | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: 'ascending' | 'descending' }>({ key: 'name', direction: 'ascending' });
+
+    const teachersCollectionRef = collection(db, "teachers");
+
+    useEffect(() => {
+        const getTeachers = async () => {
+            setIsLoading(true);
+            const q = query(teachersCollectionRef, orderBy("name", "asc"));
+            const data = await getDocs(q);
+            const teachersData = data.docs.map(doc => ({ ...doc.data(), id: doc.id } as Teacher));
+            setTeachers(teachersData);
+            setIsLoading(false);
+        };
+        getTeachers();
+    }, []);
 
     const sortedAndFilteredTeachers = useMemo(() => {
         let filtered = teachers.filter(teacher =>
@@ -48,7 +66,7 @@ const AdminTeachersPage: React.FC = () => {
 
     const openEditModal = (teacher: Teacher | null = null) => {
         setCurrentTeacher(teacher ? { ...teacher } : {
-            id: `teacher-${Date.now()}`,
+            id: '', // ID is handled by Firestore
             name: '',
             position: '',
             subject: '',
@@ -70,26 +88,31 @@ const AdminTeachersPage: React.FC = () => {
         setViewingTeacher(null);
     };
     
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!currentTeacher) return;
 
         if (!currentTeacher.name || !currentTeacher.position || !currentTeacher.subject) {
             alert('Nama, Jabatan, dan Mata Pelajaran harus diisi.');
             return;
         }
+        
+        const { id, ...teacherData } = currentTeacher;
 
-        const isEditing = teachers.some(t => t.id === currentTeacher.id);
-
-        if (isEditing) {
-            setTeachers(teachers.map(t => t.id === currentTeacher.id ? currentTeacher : t));
-        } else {
-            setTeachers([currentTeacher, ...teachers]);
+        if (id) { // Editing existing teacher
+            const teacherDoc = doc(db, "teachers", id);
+            await updateDoc(teacherDoc, teacherData);
+            setTeachers(teachers.map(t => t.id === id ? currentTeacher : t));
+        } else { // Adding new teacher
+            const docRef = await addDoc(teachersCollectionRef, teacherData);
+            setTeachers([{ ...currentTeacher, id: docRef.id }, ...teachers]);
         }
         closeModal();
     };
 
-    const handleDelete = (id: string) => {
+    const handleDelete = async (id: string) => {
         if (window.confirm('Apakah Anda yakin ingin menghapus data guru ini?')) {
+            const teacherDoc = doc(db, "teachers", id);
+            await deleteDoc(teacherDoc);
             setTeachers(teachers.filter(t => t.id !== id));
         }
     };
@@ -109,7 +132,7 @@ const AdminTeachersPage: React.FC = () => {
     const renderEditModal = () => {
         if (!isEditModalOpen || !currentTeacher) return null;
 
-        const isEditing = teachers.some(t => t.id === currentTeacher.id);
+        const isEditing = !!currentTeacher.id;
 
         return (
             <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-start p-4 overflow-y-auto">
@@ -210,6 +233,9 @@ const AdminTeachersPage: React.FC = () => {
             </div>
 
             <div className="overflow-x-auto">
+                {isLoading ? (
+                    <p className="text-center py-8">Memuat data guru...</p>
+                ) : (
                 <table className="w-full text-sm text-left text-gray-500">
                     <thead className="text-xs text-gray-700 uppercase bg-gray-50">
                         <tr>
@@ -250,6 +276,7 @@ const AdminTeachersPage: React.FC = () => {
                         )}
                     </tbody>
                 </table>
+                )}
             </div>
             {renderEditModal()}
             {renderDetailModal()}
