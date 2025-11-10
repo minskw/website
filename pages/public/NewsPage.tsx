@@ -1,18 +1,37 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { mockNews } from '../../services/mockApi';
-import { Calendar, Tag, ArrowLeft } from 'lucide-react';
+import { NewsArticle } from '../../types';
+import { db } from '../../services/firebase';
+import { collection, getDocs, doc, getDoc, query, orderBy } from 'firebase/firestore';
+import { Calendar, Tag, ArrowLeft, LoaderCircle } from 'lucide-react';
 
 const NewsListPage = () => {
+    const [news, setNews] = useState<NewsArticle[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
     const articlesPerPage = 6;
+
+    useEffect(() => {
+        const fetchNews = async () => {
+            setIsLoading(true);
+            const q = query(collection(db, "news"), orderBy("date", "desc"));
+            const querySnapshot = await getDocs(q);
+            const newsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as NewsArticle));
+            setNews(newsData);
+            setIsLoading(false);
+        };
+        fetchNews();
+    }, []);
+
     const indexOfLastArticle = currentPage * articlesPerPage;
     const indexOfFirstArticle = indexOfLastArticle - articlesPerPage;
-    const currentArticles = mockNews.slice(indexOfFirstArticle, indexOfLastArticle);
-    const totalPages = Math.ceil(mockNews.length / articlesPerPage);
-
+    const currentArticles = news.slice(indexOfFirstArticle, indexOfLastArticle);
+    const totalPages = Math.ceil(news.length / articlesPerPage);
     const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+
+    if (isLoading) {
+        return <div className="flex justify-center items-center py-20"><LoaderCircle className="animate-spin text-primary" size={40} /></div>;
+    }
 
     return (
         <>
@@ -27,7 +46,7 @@ const NewsListPage = () => {
                                 <span>{article.category}</span>
                                 <span className="mx-2">|</span>
                                 <Calendar className="w-4 h-4 mr-2 text-secondary" />
-                                <span>{article.date}</span>
+                                <span>{new Date(article.date).toLocaleDateString('id-ID')}</span>
                             </div>
                             <h3 className="text-xl font-bold font-poppins text-gray-800 h-16 overflow-hidden">{article.title}</h3>
                             <p className="mt-2 text-gray-600 text-sm h-24 overflow-hidden">{article.excerpt}</p>
@@ -61,7 +80,26 @@ const NewsListPage = () => {
 
 const NewsDetailPage = () => {
     const { id } = useParams<{ id: string }>();
-    const article = mockNews.find(a => a.id === id);
+    const [article, setArticle] = useState<NewsArticle | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchArticle = async () => {
+            if (!id) return;
+            setIsLoading(true);
+            const docRef = doc(db, "news", id);
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                setArticle({ id: docSnap.id, ...docSnap.data() } as NewsArticle);
+            }
+            setIsLoading(false);
+        };
+        fetchArticle();
+    }, [id]);
+
+    if (isLoading) {
+        return <div className="flex justify-center items-center py-20"><LoaderCircle className="animate-spin text-primary" size={40} /></div>;
+    }
 
     if (!article) {
         return <div className="text-center py-20">Artikel tidak ditemukan.</div>;
@@ -79,7 +117,7 @@ const NewsDetailPage = () => {
                 <span>{article.category}</span>
                 <span className="mx-2">|</span>
                 <Calendar className="w-4 h-4 mr-2 text-secondary" />
-                <span>{article.date}</span>
+                <span>{new Date(article.date).toLocaleDateString('id-ID')}</span>
             </div>
             <img src={article.imageUrl} alt={article.title} className="w-full h-auto max-h-[500px] object-cover rounded-lg mb-8" />
             <div

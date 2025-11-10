@@ -1,178 +1,93 @@
 import React, { useState } from 'react';
 import { db } from '../../services/firebase';
-import { collection, doc, writeBatch } from 'firebase/firestore';
-import {
-  mockNews,
-  mockTeachers,
-  mockPpdbApplicants,
-  mockEvents,
-  mockHomepageContent,
-  mockGallery
-} from '../../services/mockApi';
-import { DatabaseZap, CheckCircle, AlertTriangle } from 'lucide-react';
+import { doc, writeBatch } from 'firebase/firestore';
+import { SCHOOL_INFO, SOCIAL_LINKS } from '../../constants';
+import { LoaderCircle } from 'lucide-react';
 
-// Data settings disalin di sini untuk membuat komponen ini mandiri
-const schoolInfoSettings = {
-    info: {
-        name: 'MIN SINGKAWANG',
-        logo: 'https://i.imgur.com/ruwOS0c.jpeg',
-        address: 'Jl. Marhaban, Kel. Sedau, Kec. Singkawang Selatan, Kota Singawang',
-        motto: 'Berakhlak Mulia, Cerdas, dan Berprestasi',
-        email: 'info@minsingkawang.sch.id',
-        phone: '(0562) 123456',
-    },
-    socialLinks: {
-        facebook: 'https://facebook.com',
-        instagram: 'https://instagram.com',
-        youtube: 'https://youtube.com',
-    }
+// Dummy data for seeding
+const initialHomepageContent = {
+    heroImageUrl: 'https://images.unsplash.com/photo-1576765682835-a73c552096e2?q=80&w=2070&auto=format&fit=crop',
+    welcomeTitle: `Selamat Datang di ${SCHOOL_INFO.name}`,
+    welcomeText: `Kami berkomitmen untuk memberikan pendidikan berkualitas yang berlandaskan nilai-nilai Islam, menciptakan generasi yang cerdas, berakhlak mulia, dan berprestasi.`,
+    welcomeImageUrl: 'https://images.unsplash.com/photo-1594400273525-242d20bcca6b?q=80&w=1974&auto=format&fit=crop',
 };
 
-const profileContentSettings = {
-    vision: 'Terwujudnya peserta didik yang berakhlak mulia, cerdas, terampil, dan berprestasi berdasarkan iman dan takwa.',
-    mission: 'Menanamkan akidah dan akhlak mulia melalui pembiasaan.\nMengoptimalkan proses pembelajaran yang aktif, inovatif, kreatif, efektif, dan menyenangkan.\nMengembangkan potensi siswa di bidang akademik dan non-akademik.\nMenciptakan lingkungan madrasah yang religius, aman, dan nyaman.',
-    orgChartUrl: 'https://via.placeholder.com/800x500.png?text=Bagan+Struktur+Organisasi'
+const initialProfileContent = {
+    vision: 'Terwujudnya peserta didik yang berakhlak mulia, cerdas, terampil, dan berprestasi.',
+    mission: 'Menyelenggarakan pendidikan yang berkualitas.\nMengembangkan potensi siswa secara optimal.\nMembina akhlak mulia dan budi pekerti luhur.',
+    orgChartUrl: 'https://via.placeholder.com/800x600.png?text=Bagan+Struktur+Organisasi',
 };
 
-const ppdbScheduleSettings = {
-  startDate: '2024-07-05',
-  endDate: '2024-07-20',
-  verificationDeadline: '2024-07-23',
-  announcementDate: '2024-07-25',
+const initialPpdbSchedule = {
+    startDate: '2024-06-01',
+    endDate: '2024-06-30',
+    announcementDate: '2024-07-10',
 };
 
+const initialSchoolInfo = {
+    info: { ...SCHOOL_INFO },
+    socialLinks: { ...SOCIAL_LINKS }
+}
 
 const AdminSetupPage: React.FC = () => {
     const [isLoading, setIsLoading] = useState(false);
-    const [logs, setLogs] = useState<string[]>([]);
-    const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
-    
-    const addLog = (message: string) => {
-        setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${message}`]);
-    };
+    const [statusMessage, setStatusMessage] = useState('');
 
     const handleSeedDatabase = async () => {
-        if (!window.confirm("Apakah Anda yakin ingin mengisi database? Aksi ini akan menambahkan banyak data baru dan sebaiknya hanya dilakukan sekali pada database yang kosong.")) {
+        if (!window.confirm("Apakah Anda yakin ingin melakukan setup awal? Ini akan menimpa pengaturan yang ada dengan data default.")) {
             return;
         }
 
         setIsLoading(true);
-        setLogs([]);
-        setStatus('idle');
+        setStatusMessage('Memulai proses setup...');
 
         try {
-            addLog("Memulai proses seeding database...");
-
             const batch = writeBatch(db);
 
-            addLog("Mempersiapkan koleksi 'news'...");
-            mockNews.forEach(item => {
-                const docRef = doc(collection(db, "news"));
-                const { id, ...data } = item;
-                const cleanData = JSON.parse(JSON.stringify(data));
-                batch.set(docRef, cleanData);
-            });
-            
-            addLog("Mempersiapkan koleksi 'teachers'...");
-            mockTeachers.forEach(item => {
-                const docRef = doc(collection(db, "teachers"));
-                const { id, ...data } = item;
-                const cleanData = JSON.parse(JSON.stringify(data));
-                batch.set(docRef, cleanData);
-            });
-            
-            addLog("Mempersiapkan koleksi 'ppdb_applicants'...");
-            mockPpdbApplicants.forEach(item => {
-                const docRef = doc(collection(db, "ppdb_applicants"));
-                const { id, ...data } = item;
-                const cleanData = JSON.parse(JSON.stringify(data));
-                batch.set(docRef, cleanData);
-            });
+            // Settings documents
+            const homepageRef = doc(db, 'settings', 'homepageContent');
+            batch.set(homepageRef, initialHomepageContent);
 
-            addLog("Mempersiapkan koleksi 'events'...");
-            mockEvents.forEach(item => {
-                const docRef = doc(collection(db, "events"));
-                const { id, ...data } = item;
-                const cleanData = JSON.parse(JSON.stringify(data));
-                batch.set(docRef, cleanData);
-            });
+            const profileRef = doc(db, 'settings', 'profileContent');
+            batch.set(profileRef, initialProfileContent);
             
-            addLog("Mempersiapkan koleksi 'gallery'...");
-            mockGallery.forEach(item => {
-                const docRef = doc(collection(db, "gallery"));
-                const { id, ...data } = item;
-                const cleanData = JSON.parse(JSON.stringify(data));
-                batch.set(docRef, cleanData);
-            });
+            const ppdbRef = doc(db, 'settings', 'ppdbSchedule');
+            batch.set(ppdbRef, initialPpdbSchedule);
 
-            addLog("Mempersiapkan dokumen 'settings'...");
-            batch.set(doc(db, "settings", "schoolInfo"), JSON.parse(JSON.stringify(schoolInfoSettings)));
-            batch.set(doc(db, "settings", "profileContent"), JSON.parse(JSON.stringify(profileContentSettings)));
-            batch.set(doc(db, "settings", "ppdbSchedule"), JSON.parse(JSON.stringify(ppdbScheduleSettings)));
-            batch.set(doc(db, "settings", "homepageContent"), JSON.parse(JSON.stringify(mockHomepageContent)));
-
-            addLog("Mengirim data ke Firestore... Ini mungkin memakan waktu beberapa saat.");
+            const schoolInfoRef = doc(db, 'settings', 'schoolInfo');
+            batch.set(schoolInfoRef, initialSchoolInfo);
+            
             await batch.commit();
-            
-            addLog("Proses seeding database berhasil diselesaikan!");
-            setStatus('success');
 
+            setStatusMessage('Setup awal berhasil! Pengaturan website telah diisi dengan data default.');
         } catch (error) {
             console.error("Database seeding failed:", error);
-            addLog(`ERROR: Terjadi kesalahan - ${error instanceof Error ? error.message : String(error)}`);
-            setStatus('error');
+            setStatusMessage('Terjadi kesalahan saat setup. Silakan periksa konsol untuk detail.');
         } finally {
             setIsLoading(false);
         }
     };
 
-
     return (
-        <div className="bg-white p-6 rounded-lg shadow-md">
-            <h1 className="text-2xl font-bold text-gray-800 mb-4">Setup Awal & Inisialisasi Database</h1>
+        <div className="bg-white p-6 rounded-lg shadow-md max-w-lg mx-auto">
+            <h1 className="text-2xl font-bold text-gray-800 mb-4">Setup Awal Website</h1>
+            <p className="text-gray-600 mb-6">
+                Gunakan tombol di bawah ini untuk mengisi database dengan data awal (default). 
+                Ini berguna untuk penggunaan pertama kali atau untuk mereset pengaturan website.
+                <strong> Peringatan:</strong> Tindakan ini akan menimpa data pengaturan yang ada.
+            </p>
             
-            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg mb-6">
-                <div className="flex items-start">
-                    <AlertTriangle className="h-6 w-6 text-yellow-500 mr-3 flex-shrink-0" />
-                    <div>
-                        <h3 className="font-bold text-yellow-800">Peringatan Penting</h3>
-                        <p className="text-sm text-yellow-700 mt-1">
-                            Fitur ini bertujuan untuk mengisi database Firestore Anda dengan data awal (contoh) untuk pertama kali.
-                            Menjalankan ini pada database yang sudah berisi data dapat menyebabkan duplikasi.
-                            <strong> Harap gunakan fitur ini hanya satu kali pada saat setup awal.</strong>
-                        </p>
-                    </div>
-                </div>
-            </div>
-
             <button
                 onClick={handleSeedDatabase}
                 disabled={isLoading}
-                className="flex items-center justify-center gap-3 w-full sm:w-auto bg-primary text-white font-bold py-3 px-6 rounded-lg hover:bg-primary-dark transition-colors duration-300 disabled:bg-gray-400 disabled:cursor-wait"
+                className="w-full bg-red-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-red-700 transition-colors disabled:bg-gray-400 flex items-center justify-center gap-2"
             >
-                <DatabaseZap size={20} />
-                {isLoading ? 'Sedang Memproses...' : 'Isi Database dengan Data Awal'}
+                {isLoading ? <LoaderCircle className="animate-spin" /> : 'Jalankan Setup Awal'}
             </button>
-            
-            {logs.length > 0 && (
-                <div className="mt-6">
-                    <h2 className="text-lg font-semibold text-gray-700 mb-2">Log Proses:</h2>
-                    <pre className="bg-gray-800 text-white text-sm p-4 rounded-lg h-64 overflow-y-auto font-mono">
-                        {logs.join('\n')}
-                    </pre>
-                </div>
-            )}
-            
-            {status === 'success' && (
-                <div className="mt-4 bg-green-50 border-l-4 border-green-400 p-4 rounded-r-lg flex items-center gap-3">
-                    <CheckCircle className="h-6 w-6 text-green-500"/>
-                    <p className="font-semibold text-green-800">Database berhasil diisi! Anda sekarang dapat menggunakan semua halaman admin dengan data permanen.</p>
-                </div>
-            )}
-            {status === 'error' && (
-                 <div className="mt-4 bg-red-50 border-l-4 border-red-400 p-4 rounded-r-lg flex items-center gap-3">
-                    <AlertTriangle className="h-6 w-6 text-red-500"/>
-                    <p className="font-semibold text-red-800">Terjadi kesalahan. Silakan periksa log di atas dan konsol browser untuk detailnya.</p>
+
+            {statusMessage && (
+                <div className={`mt-4 p-4 rounded-md text-sm ${statusMessage.includes('berhasil') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                    {statusMessage}
                 </div>
             )}
         </div>

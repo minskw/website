@@ -1,133 +1,123 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useCallback, FormEvent } from 'react';
 import { db } from '../../services/firebase';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { LoaderCircle, CheckCircle, AlertTriangle } from 'lucide-react';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { LoaderCircle, Save } from 'lucide-react';
+import { HomepageContent } from '../../types';
 
-interface SchoolInfo {
-    info: { name: string; logo: string; address: string; motto: string; email: string; phone: string; };
-    socialLinks: { facebook: string; instagram: string; youtube: string; };
+interface ProfileContent {
+    vision: string;
+    mission: string;
+    orgChartUrl: string;
 }
-interface ProfileContent { vision: string; mission: string; orgChartUrl: string; }
-interface HomepageContent { heroImageUrl: string; welcomeTitle: string; welcomeText: string; welcomeImageUrl: string; }
-interface PpdbSchedule { startDate: string; endDate: string; verificationDeadline: string; announcementDate: string; }
 
-type SettingsData = {
-    schoolInfo: SchoolInfo | null,
-    profileContent: ProfileContent | null,
-    homepageContent: HomepageContent | null,
-    ppdbSchedule: PpdbSchedule | null,
-};
-
-type SaveStatus = 'idle' | 'saving' | 'success' | 'error';
+interface PpdbSchedule {
+    startDate: string;
+    endDate: string;
+    announcementDate: string;
+}
 
 const AdminSettingsPage: React.FC = () => {
-    const [settings, setSettings] = useState<SettingsData>({ schoolInfo: null, profileContent: null, homepageContent: null, ppdbSchedule: null });
+    const [homepageContent, setHomepageContent] = useState<HomepageContent | null>(null);
+    const [profileContent, setProfileContent] = useState<ProfileContent | null>(null);
+    const [ppdbSchedule, setPpdbSchedule] = useState<PpdbSchedule | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
+    const [isSaving, setIsSaving] = useState<string | null>(null);
 
-    useEffect(() => {
-        const fetchSettings = async () => {
-            setIsLoading(true);
-            const settingIds = ['schoolInfo', 'profileContent', 'homepageContent', 'ppdbSchedule'];
-            const promises = settingIds.map(id => getDoc(doc(db, 'settings', id)));
-            const docs = await Promise.all(promises);
-            const newSettings: any = {};
-            docs.forEach((docSnap, index) => {
-                if (docSnap.exists()) {
-                    newSettings[settingIds[index]] = docSnap.data();
-                }
-            });
-            setSettings(newSettings);
+    const fetchSettings = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const homepageRef = doc(db, 'settings', 'homepageContent');
+            const profileRef = doc(db, 'settings', 'profileContent');
+            const ppdbRef = doc(db, 'settings', 'ppdbSchedule');
+            
+            const [homepageSnap, profileSnap, ppdbSnap] = await Promise.all([
+                getDoc(homepageRef),
+                getDoc(profileRef),
+                getDoc(ppdbRef)
+            ]);
+            
+            if (homepageSnap.exists()) setHomepageContent(homepageSnap.data() as HomepageContent);
+            if (profileSnap.exists()) setProfileContent(profileSnap.data() as ProfileContent);
+            if (ppdbSnap.exists()) setPpdbSchedule(ppdbSnap.data() as PpdbSchedule);
+            
+        } catch (error) {
+            console.error("Failed to fetch settings:", error);
+            alert("Gagal memuat pengaturan.");
+        } finally {
             setIsLoading(false);
-        };
-        fetchSettings();
+        }
     }, []);
 
-    const handleInputChange = (category: keyof SettingsData, field: string, value: string, subField?: string) => {
-        setSettings(prev => {
-            const categoryData = prev[category];
-            if (!categoryData) return prev;
-            
-            let updatedCategoryData;
-            if (subField) {
-                 updatedCategoryData = { ...categoryData, [subField]: { ...(categoryData as any)[subField], [field]: value } };
-            } else {
-                 updatedCategoryData = { ...categoryData, [field]: value };
-            }
+    useEffect(() => {
+        fetchSettings();
+    }, [fetchSettings]);
 
-            return { ...prev, [category]: updatedCategoryData };
-        });
-    };
-    
-    const handleSave = async (category: keyof SettingsData) => {
-        if (!settings[category]) return;
-        setSaveStatus('saving');
+    const handleSave = async (section: string, data: any) => {
+        setIsSaving(section);
         try {
-            const docRef = doc(db, 'settings', category);
-            await updateDoc(docRef, settings[category]!);
-            setSaveStatus('success');
+            await setDoc(doc(db, 'settings', section), data);
+            alert(`Pengaturan ${section} berhasil disimpan!`);
         } catch (error) {
-            console.error("Failed to save settings:", error);
-            setSaveStatus('error');
+            console.error(`Failed to save ${section}:`, error);
+            alert(`Gagal menyimpan pengaturan ${section}.`);
         } finally {
-            setTimeout(() => setSaveStatus('idle'), 3000);
+            setIsSaving(null);
         }
     };
     
     if (isLoading) {
-        return <div className="flex justify-center py-10"><LoaderCircle className="animate-spin text-primary" size={32}/></div>;
+        return <div className="flex justify-center items-center h-full"><LoaderCircle className="animate-spin text-primary" size={32} /></div>;
     }
 
     return (
         <div className="space-y-8">
             <h1 className="text-2xl font-bold text-gray-800">Pengaturan Website</h1>
             
-            {/* School Info Section */}
-            {settings.schoolInfo && (
-                <div className="bg-white p-6 rounded-lg shadow-md">
-                    <h2 className="text-xl font-bold text-gray-700 mb-4">Informasi Sekolah</h2>
-                    <div className="grid md:grid-cols-2 gap-4">
-                        <input value={settings.schoolInfo.info.name} onChange={e => handleInputChange('schoolInfo', 'name', e.target.value, 'info')} placeholder="Nama Sekolah" className="p-2 border rounded" />
-                        <input value={settings.schoolInfo.info.motto} onChange={e => handleInputChange('schoolInfo', 'motto', e.target.value, 'info')} placeholder="Motto" className="p-2 border rounded" />
-                        <input value={settings.schoolInfo.info.address} onChange={e => handleInputChange('schoolInfo', 'address', e.target.value, 'info')} placeholder="Alamat" className="p-2 border rounded" />
-                        <input value={settings.schoolInfo.info.email} onChange={e => handleInputChange('schoolInfo', 'email', e.target.value, 'info')} placeholder="Email" className="p-2 border rounded" />
-                        <input value={settings.schoolInfo.info.phone} onChange={e => handleInputChange('schoolInfo', 'phone', e.target.value, 'info')} placeholder="Telepon" className="p-2 border rounded" />
-                        <input value={settings.schoolInfo.info.logo} onChange={e => handleInputChange('schoolInfo', 'logo', e.target.value, 'info')} placeholder="URL Logo" className="p-2 border rounded" />
-                        <input value={settings.schoolInfo.socialLinks.facebook} onChange={e => handleInputChange('schoolInfo', 'facebook', e.target.value, 'socialLinks')} placeholder="URL Facebook" className="p-2 border rounded" />
-                        <input value={settings.schoolInfo.socialLinks.instagram} onChange={e => handleInputChange('schoolInfo', 'instagram', e.target.value, 'socialLinks')} placeholder="URL Instagram" className="p-2 border rounded" />
+            {/* Homepage Settings */}
+            {homepageContent && (
+                <form onSubmit={(e: FormEvent) => { e.preventDefault(); handleSave('homepageContent', homepageContent); }} className="bg-white p-6 rounded-lg shadow-md">
+                    <h2 className="text-xl font-bold mb-4">Halaman Utama</h2>
+                    <div className="space-y-4">
+                        <input value={homepageContent.heroImageUrl} onChange={e => setHomepageContent(p => p && {...p, heroImageUrl: e.target.value})} placeholder="URL Gambar Hero" className="w-full p-2 border rounded" />
+                        <input value={homepageContent.welcomeTitle} onChange={e => setHomepageContent(p => p && {...p, welcomeTitle: e.target.value})} placeholder="Judul Selamat Datang" className="w-full p-2 border rounded" />
+                        <textarea value={homepageContent.welcomeText} onChange={e => setHomepageContent(p => p && {...p, welcomeText: e.target.value})} placeholder="Teks Selamat Datang" className="w-full p-2 border rounded h-24" />
+                        <input value={homepageContent.welcomeImageUrl} onChange={e => setHomepageContent(p => p && {...p, welcomeImageUrl: e.target.value})} placeholder="URL Gambar Selamat Datang" className="w-full p-2 border rounded" />
                     </div>
-                    <button onClick={() => handleSave('schoolInfo')} className="mt-4 px-4 py-2 bg-primary text-white rounded">Simpan Info Sekolah</button>
-                </div>
-            )}
-            
-            {/* Homepage Content Section */}
-            {settings.homepageContent && (
-                 <div className="bg-white p-6 rounded-lg shadow-md">
-                    <h2 className="text-xl font-bold text-gray-700 mb-4">Konten Halaman Depan</h2>
-                    <div className="grid md:grid-cols-2 gap-4">
-                       <input value={settings.homepageContent.heroImageUrl} onChange={e => handleInputChange('homepageContent', 'heroImageUrl', e.target.value)} placeholder="URL Gambar Hero" className="p-2 border rounded" />
-                       <input value={settings.homepageContent.welcomeImageUrl} onChange={e => handleInputChange('homepageContent', 'welcomeImageUrl', e.target.value)} placeholder="URL Gambar Sambutan" className="p-2 border rounded" />
-                    </div>
-                    <input value={settings.homepageContent.welcomeTitle} onChange={e => handleInputChange('homepageContent', 'welcomeTitle', e.target.value)} placeholder="Judul Sambutan" className="p-2 border rounded w-full mt-4" />
-                    <textarea value={settings.homepageContent.welcomeText} onChange={e => handleInputChange('homepageContent', 'welcomeText', e.target.value)} placeholder="Teks Sambutan" className="p-2 border rounded w-full mt-4" rows={4}></textarea>
-                    <button onClick={() => handleSave('homepageContent')} className="mt-4 px-4 py-2 bg-primary text-white rounded">Simpan Konten Halaman Depan</button>
-                </div>
+                    <button type="submit" disabled={isSaving === 'homepageContent'} className="mt-4 flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark disabled:bg-gray-400">
+                        {isSaving === 'homepageContent' ? <LoaderCircle className="animate-spin" size={18}/> : <Save size={18} />} Simpan
+                    </button>
+                </form>
             )}
 
-            {/* Save Status Indicator */}
-            {saveStatus !== 'idle' && (
-                <div className="fixed bottom-8 right-8 p-4 rounded-lg shadow-lg flex items-center gap-3 text-white" style={{
-                    backgroundColor: saveStatus === 'success' ? '#28a745' : (saveStatus === 'error' ? '#dc3545' : '#17a2b8')
-                }}>
-                    {saveStatus === 'saving' && <LoaderCircle className="animate-spin"/>}
-                    {saveStatus === 'success' && <CheckCircle/>}
-                    {saveStatus === 'error' && <AlertTriangle/>}
-                    <span>
-                        {saveStatus === 'saving' && 'Menyimpan...'}
-                        {saveStatus === 'success' && 'Berhasil disimpan!'}
-                        {saveStatus === 'error' && 'Gagal menyimpan.'}
-                    </span>
-                </div>
+            {/* Profile Settings */}
+            {profileContent && (
+                <form onSubmit={(e: FormEvent) => { e.preventDefault(); handleSave('profileContent', profileContent); }} className="bg-white p-6 rounded-lg shadow-md">
+                    <h2 className="text-xl font-bold mb-4">Halaman Profil</h2>
+                    <div className="space-y-4">
+                         <textarea value={profileContent.vision} onChange={e => setProfileContent(p => p && {...p, vision: e.target.value})} placeholder="Visi Sekolah" className="w-full p-2 border rounded h-20" />
+                         <textarea value={profileContent.mission} onChange={e => setProfileContent(p => p && {...p, mission: e.target.value})} placeholder="Misi Sekolah (satu per baris)" className="w-full p-2 border rounded h-32" />
+                         <input value={profileContent.orgChartUrl} onChange={e => setProfileContent(p => p && {...p, orgChartUrl: e.target.value})} placeholder="URL Bagan Struktur Organisasi" className="w-full p-2 border rounded" />
+                    </div>
+                     <button type="submit" disabled={isSaving === 'profileContent'} className="mt-4 flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark disabled:bg-gray-400">
+                        {isSaving === 'profileContent' ? <LoaderCircle className="animate-spin" size={18}/> : <Save size={18} />} Simpan
+                    </button>
+                </form>
+            )}
+
+            {/* PPDB Schedule Settings */}
+            {ppdbSchedule && (
+                 <form onSubmit={(e: FormEvent) => { e.preventDefault(); handleSave('ppdbSchedule', ppdbSchedule); }} className="bg-white p-6 rounded-lg shadow-md">
+                    <h2 className="text-xl font-bold mb-4">Jadwal PPDB</h2>
+                     <div className="space-y-4">
+                         <label className="block">Tanggal Mulai: <input type="date" value={ppdbSchedule.startDate} onChange={e => setPpdbSchedule(p => p && {...p, startDate: e.target.value})} className="w-full p-2 border rounded" /></label>
+                         <label className="block">Tanggal Selesai: <input type="date" value={ppdbSchedule.endDate} onChange={e => setPpdbSchedule(p => p && {...p, endDate: e.target.value})} className="w-full p-2 border rounded" /></label>
+                         <label className="block">Tanggal Pengumuman: <input type="date" value={ppdbSchedule.announcementDate} onChange={e => setPpdbSchedule(p => p && {...p, announcementDate: e.target.value})} className="w-full p-2 border rounded" /></label>
+                     </div>
+                     <button type="submit" disabled={isSaving === 'ppdbSchedule'} className="mt-4 flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark disabled:bg-gray-400">
+                        {isSaving === 'ppdbSchedule' ? <LoaderCircle className="animate-spin" size={18}/> : <Save size={18} />} Simpan
+                    </button>
+                </form>
             )}
         </div>
     );

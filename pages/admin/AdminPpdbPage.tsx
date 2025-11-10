@@ -1,253 +1,169 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { PpdbApplicant, PpdbStatus, AIVerificationStatus } from '../../types';
-import { Search, ChevronDown, Check, X, Clock, Eye, Bot, Edit, Download, Trash2, UserPlus } from 'lucide-react';
-
-// Firebase imports
+import React, { useState, useEffect } from 'react';
 import { db } from '../../services/firebase';
-import { collection, getDocs, updateDoc, doc, query, orderBy } from "firebase/firestore";
+import { collection, doc, updateDoc, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { PpdbApplicant, PpdbStatus, AIVerificationStatus } from '../../types';
+import { Bot, LoaderCircle, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { GoogleGenAI } from '@google/genai';
 
+let ai: GoogleGenAI | null = null;
+if (process.env.API_KEY) {
+  try {
+    ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  } catch (error) {
+    console.error("Failed to initialize GoogleGenAI. Make sure API_KEY is configured.", error);
+  }
+} else {
+  console.warn("API_KEY environment variable is not set. AI features will be disabled.");
+}
 
-const getStatusBadge = (status: PpdbStatus) => {
+const getStatusColor = (status: PpdbStatus) => {
     switch (status) {
-        case PpdbStatus.ACCEPTED:
-            return <span className="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full">Diterima</span>;
-        case PpdbStatus.REJECTED:
-            return <span className="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full">Ditolak</span>;
-        case PpdbStatus.VERIFIED:
-            return <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">Terverifikasi</span>;
-        case PpdbStatus.WAITING:
-            return <span className="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded-full">Menunggu</span>;
-        default:
-            return <span className="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded-full">Unknown</span>;
+        case PpdbStatus.ACCEPTED: return 'bg-green-100 text-green-800';
+        case PpdbStatus.REJECTED: return 'bg-red-100 text-red-800';
+        case PpdbStatus.VERIFIED: return 'bg-blue-100 text-blue-800';
+        case PpdbStatus.WAITING: return 'bg-yellow-100 text-yellow-800';
+        default: return 'bg-gray-100 text-gray-800';
     }
 };
 
-const getAIVerificationBadge = (status: AIVerificationStatus) => {
+const getAIVerificationIcon = (status: AIVerificationStatus) => {
     switch(status) {
-        case AIVerificationStatus.VERIFIED:
-            return <span className="flex items-center gap-1 bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full"><Check size={12}/> Terverifikasi AI</span>;
-        case AIVerificationStatus.MANUAL_REVIEW:
-            return <span className="flex items-center gap-1 bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded-full"><Eye size={12}/> Perlu Review Manual</span>;
-        case AIVerificationStatus.NOT_CHECKED:
-        default:
-             return <span className="flex items-center gap-1 bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded-full"><Clock size={12}/> Belum Dicek</span>;
+        case AIVerificationStatus.VERIFIED: return <span title="Terverifikasi AI"><ShieldCheck className="text-green-500" /></span>;
+        case AIVerificationStatus.MANUAL_REVIEW: return <span title="Perlu Review Manual"><ShieldAlert className="text-yellow-500" /></span>;
+        default: return null;
     }
-}
-
+};
 
 const AdminPpdbPage: React.FC = () => {
     const [applicants, setApplicants] = useState<PpdbApplicant[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [selectedApplicant, setSelectedApplicant] = useState<PpdbApplicant | null>(null);
-    const [editingApplicant, setEditingApplicant] = useState<PpdbApplicant | null>(null);
-    const [isVerifying, setIsVerifying] = useState<string | null>(null); // applicant id
-
-    const applicantsCollectionRef = collection(db, "ppdb_applicants");
+    const [verifyingId, setVerifyingId] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const getApplicants = async () => {
-            setIsLoading(true);
-            const q = query(applicantsCollectionRef, orderBy("submissionDate", "desc"));
-            const data = await getDocs(q);
-            const applicantsData = data.docs.map(doc => ({ ...doc.data(), id: doc.id } as PpdbApplicant));
+        setIsLoading(true);
+        const q = query(collection(db, "ppdb_applicants"), orderBy("submissionDate", "desc"));
+        
+        const unsubscribe = onSnapshot(q, (querySnapshot) => {
+            const applicantsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PpdbApplicant));
             setApplicants(applicantsData);
             setIsLoading(false);
-        };
-        getApplicants();
+        }, (err) => {
+            console.error(err);
+            setError("Gagal memuat data pendaftar secara real-time.");
+            setIsLoading(false);
+        });
+
+        return () => unsubscribe(); // Cleanup listener on component unmount
     }, []);
 
-    const filteredApplicants = useMemo(() => {
-        return applicants.filter(app =>
-            app.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            app.registrationNumber.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-    }, [applicants, searchTerm]);
-
-    const handleStatusChange = async (id: string, newStatus: PpdbStatus) => {
-        const applicantDoc = doc(db, "ppdb_applicants", id);
-        await updateDoc(applicantDoc, { status: newStatus });
-        setApplicants(prev => prev.map(app => app.id === id ? { ...app, status: newStatus } : app));
+    const handleUpdateStatus = async (id: string, status: PpdbStatus) => {
+        try {
+            const applicantDoc = doc(db, "ppdb_applicants", id);
+            await updateDoc(applicantDoc, { status });
+            // State will update automatically via onSnapshot
+        } catch (err) {
+            console.error(err);
+            alert("Gagal memperbarui status.");
+        }
     };
 
-    const handleAIVerify = (id: string) => {
-        setIsVerifying(id);
-        // Simulate Gemini API call
-        setTimeout(async () => {
-            const statuses = [AIVerificationStatus.VERIFIED, AIVerificationStatus.MANUAL_REVIEW];
-            const newStatus = statuses[Math.floor(Math.random() * statuses.length)];
+    const handleAIVerify = async (applicant: PpdbApplicant) => {
+        if (!ai) {
+            alert("Layanan AI tidak tersedia. Pastikan API Key sudah dikonfigurasi.");
+            return;
+        }
+        setVerifyingId(applicant.id);
+        try {
+            const prompt = `Analisis data pendaftar siswa baru berikut untuk kemungkinan anomali. Data: Nama Lengkap: ${applicant.fullName}, NIK: ${applicant.nik}, Sekolah Asal: ${applicant.originSchool}, Nama Ayah: ${applicant.fatherName}, Nama Ibu: ${applicant.motherName}. Berikan respons dalam format: STATUS | ALASAN. STATUS harus '${AIVerificationStatus.VERIFIED}' atau '${AIVerificationStatus.MANUAL_REVIEW}'. ALASAN harus singkat (maks 10 kata). Contoh: ${AIVerificationStatus.VERIFIED} | Data terlihat konsisten.`;
             
-            const applicantDoc = doc(db, "ppdb_applicants", id);
-            await updateDoc(applicantDoc, { aiVerificationStatus: newStatus });
+            const response = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: prompt,
+            });
+            const text = response.text;
             
-            setApplicants(prev => prev.map(app => app.id === id ? { ...app, aiVerificationStatus: newStatus } : app));
-            setIsVerifying(null);
-        }, 2000);
+            const [statusText, reason] = text.split('|').map(s => s.trim());
+
+            let newStatus: AIVerificationStatus = AIVerificationStatus.MANUAL_REVIEW;
+            if (statusText === AIVerificationStatus.VERIFIED) {
+                newStatus = AIVerificationStatus.VERIFIED;
+            }
+
+            const applicantDoc = doc(db, "ppdb_applicants", applicant.id);
+            await updateDoc(applicantDoc, {
+                aiVerificationStatus: newStatus,
+                aiVerificationNotes: reason || "Tidak ada catatan.",
+            });
+            // State will update automatically via onSnapshot
+        } catch (err) {
+            console.error("AI verification failed:", err);
+            alert("Verifikasi AI gagal. Periksa konsol untuk detail.");
+        } finally {
+            setVerifyingId(null);
+        }
+    };
+
+    if (isLoading) {
+        return <div className="flex justify-center items-center h-full"><LoaderCircle className="animate-spin text-primary" size={32} /></div>;
     }
     
-    const openEditModal = (applicant: PpdbApplicant) => {
-        setEditingApplicant({ ...applicant });
-    };
-
-    const closeEditModal = () => {
-        setEditingApplicant(null);
-    };
-
-    const handleUpdateApplicant = async () => {
-        if (!editingApplicant) return;
-        const { id, ...applicantData } = editingApplicant;
-        const applicantDoc = doc(db, "ppdb_applicants", id);
-        await updateDoc(applicantDoc, applicantData);
-        setApplicants(prev => prev.map(app => app.id === editingApplicant.id ? editingApplicant : app));
-        closeEditModal();
-    };
-    
-    const handleEditChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (!editingApplicant) return;
-        setEditingApplicant({ ...editingApplicant, [e.target.name]: e.target.value });
-    };
-    
-    // Modal to show details
-    const renderDetailModal = () => {
-        if (!selectedApplicant) return null;
-        return (
-             <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
-                <div className="bg-white rounded-lg shadow-xl w-full max-w-lg">
-                    <div className="p-6 border-b flex justify-between items-center">
-                        <h3 className="text-xl font-bold font-poppins text-gray-800">Detail Pendaftar</h3>
-                        <button onClick={() => setSelectedApplicant(null)} className="text-gray-500 hover:text-gray-800"><X size={24}/></button>
-                    </div>
-                    <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-                        <p><strong>No. Registrasi:</strong> {selectedApplicant.registrationNumber}</p>
-                        <p><strong>Nama Lengkap:</strong> {selectedApplicant.fullName}</p>
-                        <p><strong>NIK:</strong> {selectedApplicant.nik}</p>
-                        <p><strong>Asal Sekolah:</strong> {selectedApplicant.originSchool}</p>
-                        <p><strong>Tanggal Daftar:</strong> {new Date(selectedApplicant.submissionDate).toLocaleDateString('id-ID')}</p>
-                        <p><strong>Nama Ayah:</strong> {selectedApplicant.fatherName}</p>
-                        <p><strong>Nama Ibu:</strong> {selectedApplicant.motherName}</p>
-                        <p><strong>No. HP:</strong> {selectedApplicant.phone}</p>
-                        <div>
-                            <strong>Dokumen:</strong>
-                            <ul className="list-disc list-inside ml-4">
-                                <li>Kartu Keluarga: {selectedApplicant.documents.kk ? <a href="#" className="text-blue-600 hover:underline">Unduh</a> : 'Tidak Ada'}</li>
-                                <li>Akta Kelahiran: {selectedApplicant.documents.akta ? <a href="#" className="text-blue-600 hover:underline">Unduh</a> : 'Tidak Ada'}</li>
-                                <li>Ijazah TK/RA: {selectedApplicant.documents.ijazah ? <a href="#" className="text-blue-600 hover:underline">Unduh</a> : 'Tidak Ada'}</li>
-                            </ul>
-                        </div>
-                    </div>
-                     <div className="p-6 bg-gray-50 rounded-b-lg text-right">
-                        <button onClick={() => setSelectedApplicant(null)} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">Tutup</button>
-                    </div>
-                </div>
-            </div>
-        )
-    };
-    
-     const renderEditModal = () => {
-        if (!editingApplicant) return null;
-
-        return (
-             <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
-                <div className="bg-white rounded-lg shadow-xl w-full max-w-lg">
-                    <div className="p-6 border-b flex justify-between items-center">
-                        <h3 className="text-xl font-bold font-poppins text-gray-800">Edit Pendaftar</h3>
-                        <button onClick={closeEditModal} className="text-gray-500 hover:text-gray-800"><X size={24}/></button>
-                    </div>
-                    <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-                        <div><label className="text-sm font-medium">Nama Lengkap</label><input type="text" name="fullName" value={editingApplicant.fullName} onChange={handleEditChange} className="w-full mt-1 p-2 border rounded" /></div>
-                        <div><label className="text-sm font-medium">NIK</label><input type="text" name="nik" value={editingApplicant.nik} onChange={handleEditChange} className="w-full mt-1 p-2 border rounded" /></div>
-                        <div><label className="text-sm font-medium">Asal Sekolah</label><input type="text" name="originSchool" value={editingApplicant.originSchool} onChange={handleEditChange} className="w-full mt-1 p-2 border rounded" /></div>
-                        <div><label className="text-sm font-medium">Nama Ayah</label><input type="text" name="fatherName" value={editingApplicant.fatherName} onChange={handleEditChange} className="w-full mt-1 p-2 border rounded" /></div>
-                        <div><label className="text-sm font-medium">Nama Ibu</label><input type="text" name="motherName" value={editingApplicant.motherName} onChange={handleEditChange} className="w-full mt-1 p-2 border rounded" /></div>
-                        <div><label className="text-sm font-medium">No. HP</label><input type="text" name="phone" value={editingApplicant.phone} onChange={handleEditChange} className="w-full mt-1 p-2 border rounded" /></div>
-                    </div>
-                     <div className="p-6 bg-gray-50 rounded-b-lg text-right space-x-3">
-                        <button onClick={closeEditModal} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">Batal</button>
-                        <button onClick={handleUpdateApplicant} className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark">Simpan Perubahan</button>
-                    </div>
-                </div>
-            </div>
-        )
-    };
-
+    if (error) {
+        return <div className="text-center text-red-500 bg-red-100 p-4 rounded-md">{error}</div>;
+    }
 
     return (
-        <div className="bg-white p-6 rounded-lg shadow-md">
+        <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
             <h1 className="text-2xl font-bold text-gray-800 mb-6">Manajemen Pendaftar PPDB</h1>
-            <div className="flex justify-between items-center mb-4">
-                <div className="relative w-full max-w-md">
-                    <input
-                        type="text"
-                        placeholder="Cari nama atau no. registrasi..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                </div>
-            </div>
-
             <div className="overflow-x-auto">
-                 {isLoading ? (
-                    <p className="text-center py-8">Memuat data pendaftar...</p>
-                ) : (
-                <table className="w-full text-sm text-left text-gray-500">
-                    <thead className="text-xs text-gray-700 uppercase bg-gray-50">
+                <table className="min-w-full bg-white text-sm">
+                    <thead className="bg-gray-100">
                         <tr>
-                            <th className="px-6 py-3">No. Reg</th>
-                            <th className="px-6 py-3">Nama Lengkap</th>
-                            <th className="px-6 py-3">Asal Sekolah</th>
-                            <th className="px-6 py-3">Tgl. Daftar</th>
-                            <th className="px-6 py-3">Status</th>
-                            <th className="px-6 py-3 text-center">Verifikasi AI</th>
-                            <th className="px-6 py-3 text-center">Aksi</th>
+                            <th className="text-left py-3 px-4 uppercase font-semibold text-sm">No. Reg</th>
+                            <th className="text-left py-3 px-4 uppercase font-semibold text-sm">Nama</th>
+                            <th className="text-left py-3 px-4 uppercase font-semibold text-sm">Tanggal Daftar</th>
+                            <th className="text-left py-3 px-4 uppercase font-semibold text-sm">Status</th>
+                            <th className="text-center py-3 px-4 uppercase font-semibold text-sm">Verifikasi AI</th>
+                            <th className="text-left py-3 px-4 uppercase font-semibold text-sm">Aksi</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        {filteredApplicants.map(app => (
-                            <tr key={app.id} 
-                                className="bg-white border-b hover:bg-gray-50 cursor-pointer"
-                                onClick={() => setSelectedApplicant(app)}
-                            >
-                                <td className="px-6 py-4 font-medium text-gray-900">{app.registrationNumber}</td>
-                                <td className="px-6 py-4">{app.fullName}</td>
-                                <td className="px-6 py-4">{app.originSchool}</td>
-                                <td className="px-6 py-4">{new Date(app.submissionDate).toLocaleDateString('id-ID')}</td>
-                                <td className="px-6 py-4">{getStatusBadge(app.status)}</td>
-                                <td className="px-6 py-4 text-center">{getAIVerificationBadge(app.aiVerificationStatus)}</td>
-                                <td className="px-6 py-4 text-center">
-                                    <div className="flex items-center justify-center gap-2" onClick={(e) => e.stopPropagation()}>
-                                        <button onClick={() => openEditModal(app)} title="Edit" className="text-green-600 hover:text-green-800"><Edit size={18} /></button>
-                                         <button 
-                                            onClick={() => handleAIVerify(app.id)} 
-                                            title="Verifikasi Dokumen dengan AI" 
-                                            className="text-purple-600 hover:text-purple-800 disabled:opacity-50"
-                                            disabled={isVerifying === app.id}
-                                        >
-                                            {isVerifying === app.id ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600"></div> : <Bot size={18} />}
-                                        </button>
-                                        <div className="relative group">
-                                             <button className="p-1 rounded-md text-gray-600 hover:bg-gray-200"><ChevronDown size={18}/></button>
-                                             <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none group-hover:pointer-events-auto">
-                                                 <div className="py-1">
-                                                     <a href="#" onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleStatusChange(app.id, PpdbStatus.ACCEPTED)}} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Set Diterima</a>
-                                                     <a href="#" onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleStatusChange(app.id, PpdbStatus.REJECTED)}} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Set Ditolak</a>
-                                                     <a href="#" onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleStatusChange(app.id, PpdbStatus.VERIFIED)}} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Set Terverifikasi</a>
-                                                     <a href="#" onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleStatusChange(app.id, PpdbStatus.WAITING)}} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Set Menunggu</a>
-                                                 </div>
-                                             </div>
-                                        </div>
-                                    </div>
+                    <tbody className="text-gray-700">
+                        {applicants.map(app => (
+                            <tr key={app.id} className="border-b border-gray-200 hover:bg-gray-50">
+                                <td className="py-3 px-4">{app.registrationNumber}</td>
+                                <td className="py-3 px-4">{app.fullName}</td>
+                                <td className="py-3 px-4">{new Date(app.submissionDate).toLocaleDateString('id-ID')}</td>
+                                <td className="py-3 px-4">
+                                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(app.status)}`}>
+                                        {app.status}
+                                    </span>
+                                </td>
+                                <td className="py-3 px-4 text-center">{getAIVerificationIcon(app.aiVerificationStatus)}</td>
+                                <td className="py-3 px-4 flex items-center gap-2">
+                                    <button
+                                        onClick={() => handleAIVerify(app)}
+                                        disabled={verifyingId === app.id || !ai}
+                                        className="p-2 text-blue-600 hover:bg-blue-100 rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
+                                        title={ai ? "Verifikasi dengan AI" : "AI tidak tersedia"}
+                                    >
+                                        {verifyingId === app.id ? <LoaderCircle className="animate-spin" size={18} /> : <Bot size={18} />}
+                                    </button>
+                                     <select
+                                        value={app.status}
+                                        onChange={(e) => handleUpdateStatus(app.id, e.target.value as PpdbStatus)}
+                                        className="text-sm border-gray-300 rounded p-1"
+                                    >
+                                        <option value={PpdbStatus.WAITING}>Menunggu</option>
+                                        <option value={PpdbStatus.VERIFIED}>Verifikasi</option>
+                                        <option value={PpdbStatus.ACCEPTED}>Terima</option>
+                                        <option value={PpdbStatus.REJECTED}>Tolak</option>
+                                    </select>
                                 </td>
                             </tr>
                         ))}
                     </tbody>
                 </table>
-                 )}
-                 {filteredApplicants.length === 0 && !isLoading && <p className="text-center text-gray-500 py-8">Tidak ada data pendaftar.</p>}
             </div>
-            {renderDetailModal()}
-            {renderEditModal()}
         </div>
     );
 };
