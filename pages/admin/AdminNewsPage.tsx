@@ -1,15 +1,28 @@
-
 import React, { useState, useEffect, FormEvent } from 'react';
 import { db } from '../../services/firebase';
 import { collection, doc, addDoc, updateDoc, deleteDoc, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { NewsArticle } from '../../types';
-import { PlusCircle, Edit, Trash2, LoaderCircle, X } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, LoaderCircle, X, Sparkles } from 'lucide-react';
+import { GoogleGenAI, Type } from '@google/genai';
 
-type NewsFormData = Omit<NewsArticle, 'id' | 'date'>;
+// Initialize AI client
+let ai: GoogleGenAI | null = null;
+if (process.env.API_KEY) {
+  try {
+    ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  } catch (error) {
+    console.error("Failed to initialize GoogleGenAI. Make sure API_KEY is configured.", error);
+  }
+} else {
+  console.warn("API_KEY environment variable is not set. AI features will be disabled.");
+}
+
+type NewsFormData = Omit<NewsArticle, 'id'>;
 
 const emptyNews: NewsFormData = {
     title: '',
     category: 'Kegiatan',
+    date: new Date().toISOString().split('T')[0], // Default to today
     imageUrl: '',
     excerpt: '',
     content: ''
@@ -22,14 +35,58 @@ const NewsFormModal: React.FC<{
     article: NewsArticle | null;
 }> = ({ isOpen, onClose, onSave, article }) => {
     const [formData, setFormData] = useState<NewsFormData>(emptyNews);
+    const [aiPrompt, setAiPrompt] = useState('');
+    const [isGenerating, setIsGenerating] = useState(false);
 
     useEffect(() => {
-        setFormData(article ? { title: article.title, category: article.category, imageUrl: article.imageUrl, excerpt: article.excerpt, content: article.content } : emptyNews);
+        setFormData(article ? { ...article } : emptyNews);
     }, [article, isOpen]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleGenerateContent = async () => {
+        if (!ai || !aiPrompt) {
+            alert("Silakan masukkan topik untuk AI.");
+            return;
+        }
+        setIsGenerating(true);
+        try {
+            const prompt = `Buatkan konten berita untuk website sekolah MIN Singkawang berdasarkan topik: "${aiPrompt}". Berikan respons dalam format JSON yang valid dengan struktur berikut: "title" (judul berita yang menarik), "content" (isi berita dalam beberapa paragraf, pisahkan paragraf dengan '\\n'), dan "excerpt" (ringkasan singkat 1-2 kalimat).`;
+            
+            const response = await ai.models.generateContent({
+                model: 'gemini-2.5-flash',
+                contents: prompt,
+                config: {
+                    responseMimeType: 'application/json',
+                    responseSchema: {
+                        type: Type.OBJECT,
+                        properties: {
+                            title: { type: Type.STRING },
+                            content: { type: Type.STRING },
+                            excerpt: { type: Type.STRING },
+                        },
+                        required: ["title", "content", "excerpt"],
+                    },
+                },
+            });
+            const result = JSON.parse(response.text);
+            
+            setFormData(prev => ({
+                ...prev,
+                title: result.title || '',
+                content: result.content || '',
+                excerpt: result.excerpt || '',
+            }));
+
+        } catch (error) {
+            console.error("AI content generation failed:", error);
+            alert("Gagal membuat konten dengan AI. Silakan coba lagi.");
+        } finally {
+            setIsGenerating(false);
+        }
     };
 
     const handleSubmit = (e: FormEvent) => {
@@ -43,20 +100,50 @@ const NewsFormModal: React.FC<{
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
             <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
                 <form onSubmit={handleSubmit} className="p-6">
-                    <div className="flex justify-between items-center mb-4">
+                    <div className="flex justify-between items-center mb-6">
                         <h2 className="text-xl font-bold">{article ? 'Edit Berita' : 'Tambah Berita Baru'}</h2>
                         <button type="button" onClick={onClose}><X /></button>
                     </div>
+
+                    {/* AI Generation Section */}
+                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-6">
+                        <h3 className="text-lg font-semibold text-blue-800 flex items-center gap-2 mb-2"><Sparkles size={20} /> Asisten Konten AI</h3>
+                        <p className="text-sm text-blue-700 mb-2">Tidak punya ide? Cukup ketik topik, dan biarkan AI membuatkan draf untuk Anda.</p>
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                value={aiPrompt}
+                                onChange={e => setAiPrompt(e.target.value)}
+                                placeholder="Contoh: Lomba 17 Agustus di sekolah"
+                                className="flex-grow p-2 border rounded"
+                                disabled={isGenerating}
+                            />
+                            <button
+                                type="button"
+                                onClick={handleGenerateContent}
+                                disabled={isGenerating || !ai}
+                                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400 flex items-center gap-2"
+                            >
+                                {isGenerating ? <LoaderCircle className="animate-spin" size={18} /> : <Sparkles size={18} />}
+                                {isGenerating ? 'Membuat...' : 'Generate'}
+                            </button>
+                        </div>
+                         {!ai && <p className="text-xs text-red-500 mt-1">Layanan AI tidak tersedia. API Key belum dikonfigurasi.</p>}
+                    </div>
+
                     <div className="space-y-4">
                         <input name="title" value={formData.title} onChange={handleChange} placeholder="Judul Berita" className="w-full p-2 border rounded" required />
-                        <select name="category" value={formData.category} onChange={handleChange} className="w-full p-2 border rounded">
-                            <option value="Kegiatan">Kegiatan</option>
-                            <option value="Prestasi">Prestasi</option>
-                            <option value="Pengumuman">Pengumuman</option>
-                        </select>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                           <select name="category" value={formData.category} onChange={handleChange} className="w-full p-2 border rounded">
+                                <option value="Kegiatan">Kegiatan</option>
+                                <option value="Prestasi">Prestasi</option>
+                                <option value="Pengumuman">Pengumuman</option>
+                            </select>
+                            <input name="date" type="date" value={formData.date} onChange={handleChange} className="w-full p-2 border rounded" required />
+                        </div>
                         <input name="imageUrl" value={formData.imageUrl} onChange={handleChange} placeholder="URL Gambar Utama" className="w-full p-2 border rounded" required />
                         <textarea name="excerpt" value={formData.excerpt} onChange={handleChange} placeholder="Kutipan Singkat (Excerpt)" className="w-full p-2 border rounded h-24" required />
-                        <textarea name="content" value={formData.content} onChange={handleChange} placeholder="Konten Lengkap (mendukung HTML)" className="w-full p-2 border rounded h-48" required />
+                        <textarea name="content" value={formData.content} onChange={handleChange} placeholder="Tulis konten berita di sini. Setiap baris baru akan menjadi paragraf baru." className="w-full p-2 border rounded h-48" required />
                     </div>
                     <div className="flex justify-end gap-2 mt-6">
                         <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 rounded">Batal</button>
@@ -93,7 +180,7 @@ const AdminNewsPage: React.FC = () => {
             if (id) {
                 await updateDoc(doc(db, "news", id), data);
             } else {
-                await addDoc(collection(db, "news"), { ...data, date: new Date().toISOString() });
+                await addDoc(collection(db, "news"), data);
             }
             setIsModalOpen(false);
         } catch (error) {

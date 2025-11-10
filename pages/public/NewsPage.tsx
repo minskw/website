@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { db } from '../../services/firebase';
@@ -20,6 +21,18 @@ const NewsCard: React.FC<{ article: NewsArticle }> = ({ article }) => (
     </div>
 );
 
+const NewsContent: React.FC<{ content: string }> = ({ content }) => {
+    // Split content by newline characters and render each line as a paragraph.
+    // This is safer than dangerouslySetInnerHTML and fits the new textarea input.
+    return (
+        <div className="prose max-w-none text-gray-700 leading-relaxed">
+            {content.split('\n').map((paragraph, index) => (
+                <p key={index}>{paragraph}</p>
+            ))}
+        </div>
+    );
+};
+
 const NewsDetailPage: React.FC<{ article: NewsArticle }> = ({ article }) => (
     <div className="bg-white rounded-lg shadow-lg overflow-hidden">
         <img src={article.imageUrl} alt={article.title} className="w-full h-96 object-cover" />
@@ -32,7 +45,7 @@ const NewsDetailPage: React.FC<{ article: NewsArticle }> = ({ article }) => (
                 <span className="flex items-center gap-1.5"><Calendar size={14} /> {new Date(article.date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</span>
                 <span className="px-2 py-1 text-xs rounded-full bg-gray-200">{article.category}</span>
             </div>
-            <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: article.content }} />
+            <NewsContent content={article.content} />
         </div>
     </div>
 );

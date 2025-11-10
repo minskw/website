@@ -39,10 +39,10 @@ export interface NewsArticle {
     id: string;
     title: string;
     category: 'Prestasi' | 'Kegiatan' | 'Pengumuman';
-    date: string; // ISO date string
+    date: string; // YYYY-MM-DD
     imageUrl: string;
     excerpt: string;
-    content: string; // HTML content
+    content: string; // Plain text content, newlines represent paragraphs
 }
 
 // For Teachers and Staff
