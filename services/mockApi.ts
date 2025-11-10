@@ -1,4 +1,4 @@
-import { NewsArticle, Teacher, GalleryImage, PpdbApplicant, PpdbStatus, Parent, Student, AcademicRecord, AttendanceRecord, SchoolAnnouncement, SemesterData } from '../types';
+import { NewsArticle, Teacher, GalleryImage, PpdbApplicant, PpdbStatus, Parent, Student, AcademicRecord, AttendanceRecord, SchoolAnnouncement, SemesterData, PaymentRecord, SchoolEvent, AIVerificationStatus } from '../types';
 
 export const mockNews: NewsArticle[] = [
   {
@@ -67,14 +67,86 @@ export const mockNews: NewsArticle[] = [
 ];
 
 export const mockTeachers: Teacher[] = [
-  { id: 't1', name: 'Drs. H. Muhammad Saleh', position: 'Kepala Madrasah', subject: 'Manajerial', imageUrl: 'https://i.pravatar.cc/150?u=t1' },
-  { id: 't2', name: 'Siti Aminah, S.Pd.I', position: 'Waka Kurikulum', subject: 'Akidah Akhlak & SKI', imageUrl: 'https://i.pravatar.cc/150?u=t2' },
-  { id: 't3', name: 'Ahmad Fauzi, S.Ag', position: 'Guru Kelas VI', subject: 'IPAS & Pendidikan Pancasila', imageUrl: 'https://i.pravatar.cc/150?u=t3' },
-  { id: 't4', name: 'Zainab, S.Pd', position: 'Guru Kelas V', subject: 'Matematika', imageUrl: 'https://i.pravatar.cc/150?u=t4' },
-  { id: 't5', name: 'Budi Santoso, S.Kom', position: 'Guru Bahasa Arab', subject: 'Bahasa Arab', imageUrl: 'https://i.pravatar.cc/150?u=t5' },
-  { id: 't6', name: 'Dewi Lestari, S.Pd', position: 'Guru Kelas IV', subject: 'Bahasa Indonesia', imageUrl: 'https://i.pravatar.cc/150?u=t6' },
-  { id: 't7', name: 'Irfan Hakim, S.Pd.Or', position: 'Guru Olahraga', subject: 'PJOK', imageUrl: 'https://i.pravatar.cc/150?u=t7' },
-  { id: 't8', name: 'Nurhayati, S.Ag', position: 'Guru PAI', subject: 'Al-Qur\'an Hadis & Fikih', imageUrl: 'https://i.pravatar.cc/150?u=t8' },
+  { 
+    id: 't1', 
+    name: 'Drs. H. Muhammad Saleh', 
+    position: 'Kepala Madrasah', 
+    subject: 'Manajerial', 
+    imageUrl: 'https://i.pravatar.cc/150?u=t1',
+    bio: 'Menjabat sebagai Kepala Madrasah sejak tahun 2018 dengan pengalaman lebih dari 20 tahun di dunia pendidikan. Berkomitmen untuk membawa MIN Singkawang menjadi madrasah unggul yang berlandaskan nilai-nilai Islam.',
+    education: ['S1 Pendidikan Agama Islam, IAIN Pontianak', 'S2 Manajemen Pendidikan, Universitas Tanjungpura'],
+    achievements: ['Kepala Sekolah Berprestasi Tingkat Kota (2020)', 'Satya Lencana Karya Satya XX Tahun']
+  },
+  { 
+    id: 't2', 
+    name: 'Siti Aminah, S.Pd.I', 
+    position: 'Waka Kurikulum', 
+    subject: 'Akidah Akhlak & SKI', 
+    imageUrl: 'https://i.pravatar.cc/150?u=t2',
+    bio: 'Seorang pendidik yang berdedikasi dalam pengembangan kurikulum yang inovatif dan relevan. Aktif dalam berbagai pelatihan untuk meningkatkan mutu pembelajaran di madrasah.',
+    education: ['S1 Pendidikan Guru Madrasah Ibtidaiyah, STAIN Pontianak'],
+    achievements: ['Guru Teladan Tingkat Kecamatan (2019)', 'Pengembang Kurikulum Merdeka Terbaik (2022)']
+  },
+  { 
+    id: 't3', 
+    name: 'Ahmad Fauzi, S.Ag', 
+    position: 'Guru Kelas VI', 
+    subject: 'IPAS & Pendidikan Pancasila', 
+    imageUrl: 'https://i.pravatar.cc/150?u=t3',
+    bio: 'Memiliki semangat tinggi dalam mendidik siswa kelas akhir untuk siap melanjutkan ke jenjang pendidikan berikutnya. Menguasai metode pembelajaran yang interaktif dan menyenangkan.',
+    education: ['S1 Tarbiyah, IAIN Antasari Banjarmasin'],
+    achievements: ['Juara 1 Lomba Inovasi Pembelajaran (2021)', 'Pembimbing Tim Cerdas Cermat Juara Kota']
+  },
+  { 
+    id: 't4', 
+    name: 'Zainab, S.Pd', 
+    position: 'Guru Kelas V', 
+    subject: 'Matematika', 
+    imageUrl: 'https://i.pravatar.cc/150?u=t4',
+    bio: 'Dikenal sebagai guru yang sabar dan mampu membuat pelajaran Matematika menjadi mudah dipahami. Percaya bahwa setiap anak memiliki potensi untuk menjadi ahli matematika.',
+    education: ['S1 Pendidikan Matematika, IKIP PGRI Pontianak'],
+    achievements: ['Pembimbing Olimpiade Matematika Tingkat Provinsi', 'Guru Favorit Pilihan Siswa (2023)']
+  },
+  { 
+    id: 't5', 
+    name: 'Budi Santoso, S.Kom', 
+    position: 'Guru Bahasa Arab', 
+    subject: 'Bahasa Arab', 
+    imageUrl: 'https://i.pravatar.cc/150?u=t5',
+    bio: 'Mengintegrasikan teknologi dalam pembelajaran Bahasa Arab untuk meningkatkan minat dan pemahaman siswa. Aktif mengembangkan media ajar digital.',
+    education: ['S1 Sistem Komputer, STMIK Pontianak', 'D2 Pendidikan Bahasa Arab'],
+    achievements: ['Penerima Hibah Media Pembelajaran Digital Kemenag (2022)']
+  },
+  { 
+    id: 't6', 
+    name: 'Dewi Lestari, S.Pd', 
+    position: 'Guru Kelas IV', 
+    subject: 'Bahasa Indonesia', 
+    imageUrl: 'https://i.pravatar.cc/150?u=t6',
+    bio: 'Mendorong siswa untuk cinta literasi melalui berbagai kegiatan membaca dan menulis yang kreatif. Berpengalaman dalam menangani siswa di fase perkembangan membaca lanjut.',
+    education: ['S1 Pendidikan Bahasa dan Sastra Indonesia, Universitas Tanjungpura'],
+    achievements: ['Penggerak Literasi Sekolah Tingkat Kota']
+  },
+  { 
+    id: 't7', 
+    name: 'Irfan Hakim, S.Pd.Or', 
+    position: 'Guru Olahraga', 
+    subject: 'PJOK', 
+    imageUrl: 'https://i.pravatar.cc/150?u=t7',
+    bio: 'Menanamkan pentingnya gaya hidup sehat dan sportifitas melalui pendidikan jasmani. Berhasil membawa tim olahraga sekolah meraih berbagai prestasi.',
+    education: ['S1 Pendidikan Jasmani, Kesehatan, dan Rekreasi, IKIP PGRI Pontianak'],
+    achievements: ['Pelatih Tim Futsal Juara 1 Tingkat Kecamatan (2023)']
+  },
+  { 
+    id: 't8', 
+    name: 'Nurhayati, S.Ag', 
+    position: 'Guru PAI', 
+    subject: 'Al-Qur\'an Hadis & Fikih', 
+    imageUrl: 'https://i.pravatar.cc/150?u=t8',
+    bio: 'Seorang Hafizah yang berdedikasi untuk membimbing siswa dalam membaca, menghafal, dan memahami Al-Qur\'an serta dasar-dasar ilmu Fikih.',
+    education: ['S1 Pendidikan Agama Islam, IAIN Pontianak'],
+    achievements: ['Pembimbing Tahfiz Terbaik Tingkat Kota (2022)']
+  },
 ];
 
 export const mockGallery: GalleryImage[] = [
@@ -97,6 +169,7 @@ export const mockPpdbApplicants: PpdbApplicant[] = [
     originSchool: 'TK Harapan Bangsa',
     submissionDate: '2024-07-05',
     status: PpdbStatus.ACCEPTED,
+    aiVerificationStatus: AIVerificationStatus.NOT_CHECKED,
     fatherName: 'Joko Susilo',
     motherName: 'Sri Wahyuni',
     phone: '081234567890',
@@ -110,6 +183,7 @@ export const mockPpdbApplicants: PpdbApplicant[] = [
     originSchool: 'RA Al-Ikhlas',
     submissionDate: '2024-07-06',
     status: PpdbStatus.WAITING,
+    aiVerificationStatus: AIVerificationStatus.NOT_CHECKED,
     fatherName: 'Bambang Irawan',
     motherName: 'Dewi Sartika',
     phone: '081234567891',
@@ -123,6 +197,7 @@ export const mockPpdbApplicants: PpdbApplicant[] = [
     originSchool: 'TK Pertiwi',
     submissionDate: '2024-07-06',
     status: PpdbStatus.REJECTED,
+    aiVerificationStatus: AIVerificationStatus.NOT_CHECKED,
     fatherName: 'Agus Setiawan',
     motherName: 'Wulan Sari',
     phone: '081234567892',
@@ -136,6 +211,7 @@ export const mockPpdbApplicants: PpdbApplicant[] = [
     originSchool: 'RA An-Nur',
     submissionDate: '2024-07-07',
     status: PpdbStatus.VERIFIED,
+    aiVerificationStatus: AIVerificationStatus.NOT_CHECKED,
     fatherName: 'Eko Prasetyo',
     motherName: 'Yuni Shara',
     phone: '081234567893',
@@ -149,6 +225,7 @@ export const mockPpdbApplicants: PpdbApplicant[] = [
     originSchool: 'TK Ceria',
     submissionDate: '2024-07-08',
     status: PpdbStatus.WAITING,
+    aiVerificationStatus: AIVerificationStatus.NOT_CHECKED,
     fatherName: 'Fajar Nugroho',
     motherName: 'Rina Astuti',
     phone: '081234567894',
@@ -210,4 +287,74 @@ export const mockSchoolAnnouncements: SchoolAnnouncement[] = [
     { id: 'sa1', title: 'Libur Hari Raya Idul Adha', content: 'Diumumkan bahwa sekolah akan libur pada tanggal 17-18 Juni 2024 dalam rangka Hari Raya Idul Adha. Kegiatan belajar mengajar akan dimulai kembali pada 19 Juni 2024.', date: '2024-06-14', targetGrade: 'all' },
     { id: 'sa2', title: 'Kegiatan Imunisasi BIAS Kelas 1 & 2', content: 'Akan diadakan kegiatan imunisasi (BIAS) untuk siswa kelas 1 dan 2 pada hari Selasa, 23 Juli 2024. Mohon orang tua untuk mempersiapkan anaknya.', date: '2024-07-20', targetGrade: 1 },
     { id: 'sa3', title: 'Informasi Kegiatan Class Meeting', content: 'Class meeting semester genap akan dilaksanakan pada tanggal 19-21 Juni 2024. Akan ada berbagai perlombaan antar kelas. Siswa diharapkan berpartisipasi aktif.', date: '2024-06-15', targetGrade: 'all' },
+];
+
+export const mockPayments: PaymentRecord[] = [
+    // Payments for Ananda Putri (s1)
+    { id: 'pay1', studentId: 's1', month: 'Juli', year: 2024, amount: 250000, status: 'Lunas', dueDate: '2024-07-10', paymentDate: '2024-07-08' },
+    { id: 'pay2', studentId: 's1', month: 'Agustus', year: 2024, amount: 250000, status: 'Belum Lunas', dueDate: '2024-08-10' },
+    { id: 'pay3', studentId: 's1', month: 'Juni', year: 2024, amount: 250000, status: 'Lunas', dueDate: '2024-06-10', paymentDate: '2024-06-05' },
+    { id: 'pay4', studentId: 's1', month: 'Mei', year: 2024, amount: 250000, status: 'Lunas', dueDate: '2024-05-10', paymentDate: '2024-05-09' },
+
+    // Payments for Rizky Maulana (s2)
+    { id: 'pay5', studentId: 's2', month: 'Juli', year: 2024, amount: 250000, status: 'Lunas', dueDate: '2024-07-10', paymentDate: '2024-07-02' },
+    { id: 'pay6', studentId: 's2', month: 'Agustus', year: 2024, amount: 250000, status: 'Lunas', dueDate: '2024-08-10', paymentDate: '2024-08-01' },
+    { id: 'pay7', studentId: 's2', month: 'Juni', year: 2024, amount: 250000, status: 'Lunas', dueDate: '2024-06-10', paymentDate: '2024-06-08' },
+];
+
+export const mockEvents: SchoolEvent[] = [
+  {
+    id: 'evt1',
+    title: 'Penilaian Tengah Semester (PTS) Ganjil',
+    date: '2024-09-16',
+    time: '08:00',
+    location: 'Ruang Kelas Masing-masing',
+    description: 'Pelaksanaan ujian tengah semester untuk seluruh siswa kelas 1-6.',
+    category: 'Akademik',
+  },
+  {
+    id: 'evt6',
+    title: 'Maulid Nabi Muhammad SAW 1446 H',
+    date: '2024-09-15',
+    time: '08:30',
+    location: 'Masjid Sekolah',
+    description: 'Peringatan Maulid Nabi dengan ceramah agama dan pembacaan shalawat bersama.',
+    category: 'Umum',
+  },
+  {
+    id: 'evt2',
+    title: 'Peringatan Hari Santri Nasional',
+    date: '2024-10-22',
+    time: '07:30',
+    location: 'Lapangan Sekolah',
+    description: 'Upacara bendera dan berbagai lomba keagamaan untuk memperingati Hari Santri.',
+    category: 'Umum',
+  },
+  {
+    id: 'evt5',
+    title: 'Pentas Seni dan Budaya Akhir Tahun',
+    date: '2024-11-30',
+    time: '10:00',
+    location: 'Aula Sekolah',
+    description: 'Pagelaran seni dan budaya yang menampilkan bakat siswa dalam menari, menyanyi, dan drama.',
+    category: 'Seni & Budaya',
+  },
+  {
+    id: 'evt3',
+    title: 'Class Meeting - Pekan Olahraga dan Seni',
+    date: '2024-12-16',
+    time: '08:00',
+    location: 'Lingkungan Sekolah',
+    description: 'Kegiatan perlombaan antar kelas di bidang olahraga dan seni setelah Penilaian Akhir Semester.',
+    category: 'Olahraga',
+  },
+  {
+    id: 'evt4',
+    title: 'Pembagian Rapor Semester Ganjil',
+    date: '2024-12-21',
+    time: '09:00',
+    location: 'Ruang Kelas Masing-masing',
+    description: 'Pengambilan rapor oleh orang tua/wali murid sekaligus konsultasi dengan wali kelas.',
+    category: 'Akademik',
+  },
 ];

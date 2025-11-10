@@ -9,11 +9,14 @@ export interface NewsArticle {
 }
 
 export interface Teacher {
-  id: string;
+  id:string;
   name: string;
   position: string;
   subject: string;
   imageUrl: string;
+  bio: string;
+  education: string[];
+  achievements: string[];
 }
 
 export interface GalleryImage {
@@ -30,6 +33,12 @@ export enum PpdbStatus {
   REJECTED = 'Ditolak',
 }
 
+export enum AIVerificationStatus {
+  NOT_CHECKED = 'Belum Dicek',
+  VERIFIED = 'Terverifikasi AI',
+  MANUAL_REVIEW = 'Perlu Review Manual',
+}
+
 export interface PpdbApplicant {
   id:string;
   registrationNumber: string;
@@ -38,6 +47,7 @@ export interface PpdbApplicant {
   originSchool: string;
   submissionDate: string;
   status: PpdbStatus;
+  aiVerificationStatus: AIVerificationStatus;
   fatherName: string;
   motherName: string;
   phone: string;
@@ -88,4 +98,25 @@ export interface SchoolAnnouncement {
   content: string;
   date: string;
   targetGrade: 'all' | number; // 'all' for all grades or a specific grade number
+}
+
+export interface PaymentRecord {
+  id: string;
+  month: string;
+  year: number;
+  amount: number;
+  status: 'Lunas' | 'Belum Lunas';
+  paymentDate?: string; // Optional, only present if status is 'Lunas'
+  dueDate: string;
+  studentId: string;
+}
+
+export interface SchoolEvent {
+  id: string;
+  title: string;
+  date: string; // "YYYY-MM-DD"
+  time: string; // "HH:MM"
+  location: string;
+  description: string;
+  category: 'Akademik' | 'Olahraga' | 'Seni & Budaya' | 'Umum';
 }

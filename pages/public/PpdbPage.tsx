@@ -2,6 +2,7 @@ import React, { useState, FormEvent } from 'react';
 import { mockPpdbApplicants } from '../../services/mockApi';
 import { PpdbApplicant } from '../../types';
 import { CheckCircle, Clock, XCircle, FileText, UserPlus, Search } from 'lucide-react';
+import { SCHOOL_INFO } from '../../constants';
 
 type View = 'info' | 'form' | 'status' | 'result';
 
@@ -195,7 +196,7 @@ const PpdbResult: React.FC<{ applicant: PpdbApplicant | null }> = ({ applicant }
     const statusInfo = {
         'Menunggu Verifikasi': { icon: <Clock className="w-16 h-16 text-yellow-500 mx-auto mb-4"/>, color: 'text-yellow-700', bg: 'bg-yellow-100', text: 'Pendaftaran Anda telah kami terima dan sedang menunggu proses verifikasi oleh panitia. Mohon cek secara berkala.'},
         'Terverifikasi': { icon: <CheckCircle className="w-16 h-16 text-blue-500 mx-auto mb-4"/>, color: 'text-blue-700', bg: 'bg-blue-100', text: 'Berkas Anda telah berhasil diverifikasi. Silakan tunggu pengumuman hasil seleksi.'},
-        'Diterima': { icon: <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4"/>, color: 'text-green-700', bg: 'bg-green-100', text: 'Selamat! Anda dinyatakan DITERIMA sebagai siswa baru MIN Singkawang. Informasi daftar ulang akan diumumkan selanjutnya.'},
+        'Diterima': { icon: <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4"/>, color: 'text-green-700', bg: 'bg-green-100', text: `Selamat! Anda dinyatakan DITERIMA sebagai siswa baru ${SCHOOL_INFO.name}. Informasi daftar ulang akan diumumkan selanjutnya.`},
         'Ditolak': { icon: <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4"/>, color: 'text-red-700', bg: 'bg-red-100', text: 'Mohon maaf, Anda belum dapat kami terima saat ini. Terima kasih atas partisipasinya.'},
     }
 
@@ -233,7 +234,7 @@ const PpdbPage: React.FC = () => {
         <div className="bg-light">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
                 <h1 className="text-4xl font-bold font-poppins text-center text-primary mb-4">PPDB Online</h1>
-                <p className="text-center text-gray-600 mb-10">Penerimaan Peserta Didik Baru MIN Singkawang</p>
+                <p className="text-center text-gray-600 mb-10">Penerimaan Peserta Didik Baru {SCHOOL_INFO.name}</p>
                 
                 <div className="max-w-4xl mx-auto grid md:grid-cols-3 gap-6">
                     <div className="md:col-span-2">

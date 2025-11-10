@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
 import { SCHOOL_INFO, NAV_LINKS } from '../../constants';
 import { Menu, X } from 'lucide-react';
 
@@ -12,13 +11,12 @@ const Header: React.FC = () => {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           <div className="flex items-center">
-            <NavLink to="/" className="flex-shrink-0 flex items-center gap-3">
-              <img className="h-12 w-12" src={SCHOOL_INFO.logo} alt="Logo MIN Singkawang" />
+            <Link to="/" className="flex-shrink-0 flex items-center gap-3">
+              <img className="h-12 w-12" src={SCHOOL_INFO.logo} alt="Logo MIN SINGKAWANG" />
               <div className="hidden sm:block">
                 <h1 className="text-lg font-bold text-primary font-poppins">{SCHOOL_INFO.name}</h1>
-                <p className="text-xs text-gray-500">{SCHOOL_INFO.affiliation}</p>
               </div>
-            </NavLink>
+            </Link>
           </div>
           <div className="hidden md:block">
             <div className="ml-10 flex items-baseline space-x-4">

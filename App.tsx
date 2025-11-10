@@ -3,7 +3,7 @@ import { HashRouter, Routes, Route, Navigate, Outlet, useLocation, Link } from '
 import { AuthProvider, AuthContext } from './hooks/useAuth';
 import { ParentAuthProvider, ParentAuthContext } from './hooks/useParentAuth';
 import { SCHOOL_INFO } from './constants';
-import { LogOut } from 'lucide-react';
+import { LogOut, Wallet, LayoutDashboard } from 'lucide-react';
 
 import Header from './components/common/Header';
 import Footer from './components/common/Footer';
@@ -13,8 +13,10 @@ import HomePage from './pages/public/HomePage';
 import ProfilePage from './pages/public/ProfilePage';
 import NewsPage from './pages/public/NewsPage';
 import TeachersAndGalleryPage from './pages/public/TeachersAndGalleryPage';
+import TeacherDetailPage from './pages/public/TeacherDetailPage';
 import PpdbPage from './pages/public/PpdbPage';
 import ContactPage from './pages/public/ContactPage';
+import EventCalendarPage from './pages/public/EventCalendarPage';
 
 import AdminLoginPage from './pages/admin/AdminLoginPage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
@@ -25,6 +27,7 @@ import AdminSettingsPage from './pages/admin/AdminSettingsPage';
 
 import ParentLoginPage from './pages/portal/ParentLoginPage';
 import ParentDashboardPage from './pages/portal/ParentDashboardPage';
+import ParentPaymentsPage from './pages/portal/ParentPaymentsPage';
 
 const PublicLayout: React.FC = () => (
   <div className="font-nunito-sans bg-light text-dark">
@@ -46,7 +49,7 @@ const PortalHeader: React.FC = () => {
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-20">
                     <Link to="/" className="flex items-center gap-3">
-                        <img className="h-12 w-12" src={SCHOOL_INFO.logo} alt="Logo MIN Singkawang" />
+                        <img className="h-12 w-12" src={SCHOOL_INFO.logo} alt="Logo MIN SINGKAWANG" />
                         <div>
                             <h1 className="text-lg font-bold text-primary font-poppins">Portal Wali Murid</h1>
                             <p className="text-xs text-gray-500">{SCHOOL_INFO.name}</p>
@@ -69,12 +72,41 @@ const PortalHeader: React.FC = () => {
     );
 };
 
+const PortalNav: React.FC = () => {
+    const location = useLocation();
+    const navLinks = [
+        { name: 'Dashboard', href: '/portal/dashboard', icon: <LayoutDashboard size={18}/> },
+        { name: 'Pembayaran', href: '/portal/pembayaran', icon: <Wallet size={18}/> },
+    ];
+
+    return (
+        <div className="bg-white shadow-sm mb-6 rounded-lg">
+            <nav className="flex items-center gap-2 p-2">
+                {navLinks.map(link => (
+                     <Link
+                        key={link.name}
+                        to={link.href}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold transition-colors duration-200 ${
+                            location.pathname.startsWith(link.href)
+                            ? 'bg-primary text-white'
+                            : 'text-gray-700 hover:bg-green-100 hover:text-primary'
+                        }`}
+                     >
+                        {link.icon} <span className="hidden sm:inline">{link.name}</span>
+                     </Link>
+                ))}
+            </nav>
+        </div>
+    );
+}
+
 
 const PortalLayout: React.FC = () => (
     <div className="font-nunito-sans bg-gray-100">
         <PortalHeader />
         <main className="min-h-screen pt-24 pb-8">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+                <PortalNav />
                 <Outlet />
             </div>
         </main>
@@ -135,6 +167,8 @@ const App: React.FC = () => {
               <Route path="berita" element={<NewsPage />} />
               <Route path="berita/:id" element={<NewsPage />} />
               <Route path="guru-dan-galeri" element={<TeachersAndGalleryPage />} />
+              <Route path="guru/:id" element={<TeacherDetailPage />} />
+              <Route path="kalender-kegiatan" element={<EventCalendarPage />} />
               <Route path="ppdb" element={<PpdbPage />} />
               <Route path="kontak" element={<ContactPage />} />
             </Route>
@@ -168,6 +202,7 @@ const App: React.FC = () => {
                 }
             >
                 <Route path="dashboard" element={<ParentDashboardPage />} />
+                <Route path="pembayaran" element={<ParentPaymentsPage />} />
                 <Route index element={<Navigate to="dashboard" replace />} />
             </Route>
 

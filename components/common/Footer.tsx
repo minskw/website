@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { SCHOOL_INFO, NAV_LINKS, SOCIAL_LINKS } from '../../constants';
@@ -11,7 +10,7 @@ const Footer: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="md:col-span-2">
             <div className="flex items-center mb-4">
-              <img src={SCHOOL_INFO.logo} alt="Logo MIN Singkawang" className="h-16 w-16 mr-4" />
+              <img src={SCHOOL_INFO.logo} alt="Logo MIN SINGKAWANG" className="h-16 w-16 mr-4" />
               <div>
                 <h2 className="text-xl font-bold font-poppins text-white">{SCHOOL_INFO.name}</h2>
                 <p className="text-sm text-gray-300">{SCHOOL_INFO.motto}</p>

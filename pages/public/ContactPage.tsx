@@ -55,7 +55,7 @@ const ContactPage: React.FC = () => {
                     allowFullScreen={true}
                     loading="lazy"
                     referrerPolicy="no-referrer-when-downgrade"
-                    title="Lokasi MIN Singkawang"
+                    title={`Lokasi ${SCHOOL_INFO.name}`}
                 ></iframe>
             </div>
           </div>

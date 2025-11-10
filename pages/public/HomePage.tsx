@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { SCHOOL_INFO } from '../../constants';
@@ -43,9 +42,9 @@ const HomePage: React.FC = () => {
                 <img src="https://picsum.photos/seed/profile/800/600" alt="Gedung Sekolah" className="rounded-lg shadow-2xl w-full"/>
             </div>
             <div>
-                <h2 className="text-3xl font-bold font-poppins text-primary mb-4">Selamat Datang di MIN Singkawang</h2>
+                <h2 className="text-3xl font-bold font-poppins text-primary mb-4">Selamat Datang di {SCHOOL_INFO.name}</h2>
                 <p className="text-gray-600 mb-4">
-                    Madrasah Ibtidaiyah Negeri (MIN) Singkawang adalah lembaga pendidikan dasar di bawah naungan Kementerian Agama yang berkomitmen untuk mencetak generasi Qur'ani yang berakhlak mulia, cerdas, dan berprestasi.
+                    {SCHOOL_INFO.name} adalah lembaga pendidikan dasar di bawah naungan Kementerian Agama yang berkomitmen untuk mencetak generasi Qur'ani yang berakhlak mulia, cerdas, dan berprestasi.
                 </p>
                 <div className="grid grid-cols-2 gap-4 mt-6">
                     <div className="flex items-center gap-3"><BookOpen className="text-secondary" size={24}/> <span>Kurikulum Terpadu</span></div>

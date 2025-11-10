@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { SCHOOL_INFO } from '../../constants';
 import { mockTeachers } from '../../services/mockApi';
@@ -10,7 +9,7 @@ const ProfilePage: React.FC = () => {
   return (
     <div className="bg-light">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <h1 className="text-4xl font-bold font-poppins text-center text-primary mb-10">Profil MIN Singkawang</h1>
+        <h1 className="text-4xl font-bold font-poppins text-center text-primary mb-10">Profil {SCHOOL_INFO.name}</h1>
 
         {/* Sejarah */}
         <div className="bg-white p-8 rounded-xl shadow-lg mb-10 flex flex-col md:flex-row items-center gap-8">
@@ -18,7 +17,7 @@ const ProfilePage: React.FC = () => {
             <div>
                 <h2 className="text-2xl font-bold font-poppins text-gray-800 mb-3">Sejarah Singkat</h2>
                 <p className="text-gray-600">
-                    Madrasah Ibtidaiyah Negeri (MIN) Singkawang didirikan pada tahun {SCHOOL_INFO.founded} sebagai respons atas kebutuhan masyarakat akan pendidikan dasar Islam yang berkualitas. Berawal dari sebuah bangunan sederhana, MIN Singkawang terus berkembang menjadi salah satu madrasah unggulan di Kota Singkawang, dengan fasilitas yang memadai dan prestasi yang membanggakan baik di bidang akademik maupun non-akademik.
+                    {SCHOOL_INFO.name} didirikan pada tahun {SCHOOL_INFO.founded} sebagai respons atas kebutuhan masyarakat akan pendidikan dasar Islam yang berkualitas. Berawal dari sebuah bangunan sederhana, {SCHOOL_INFO.name} terus berkembang menjadi salah satu madrasah unggulan di Kota Singkawang, dengan fasilitas yang memadai dan prestasi yang membanggakan baik di bidang akademik maupun non-akademik.
                 </p>
             </div>
         </div>
