@@ -76,6 +76,47 @@ export interface HomepageContent {
     welcomeImageUrl: string;
 }
 
+export interface ImportantLink {
+  name: string;
+  url: string;
+}
+
+// For Profile Page
+export interface ProfileContent {
+    vision: string;
+    mission: string;
+    orgChartUrl: string;
+}
+
+// For PPDB Page
+export interface PpdbScheduleData {
+    startDate: string;
+    endDate: string;
+    announcementDate: string;
+}
+
+// For School Info Settings
+export interface SchoolInfoData {
+    name: string;
+    address: string;
+    email: string;
+    phone: string;
+    logo: string;
+    affiliation: string;
+}
+
+export interface SocialLinksData {
+    facebook: string;
+    instagram: string;
+    youtube: string;
+}
+
+export interface SchoolInfoSettings {
+    info: SchoolInfoData;
+    socialLinks: SocialLinksData;
+    importantLinks: ImportantLink[];
+}
+
 // For Gallery
 export interface GalleryImageItem {
   imageUrl: string;

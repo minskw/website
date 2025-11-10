@@ -1,34 +1,48 @@
 import React, { useState } from 'react';
 import { db } from '../../services/firebase';
-// FIX: Added 'collection' to the import to resolve "Cannot find name 'collection'" error.
-import { doc, writeBatch, collection } from 'firebase/firestore';
+// FIX: Import getDocs from firebase/firestore to resolve reference error.
+import { doc, writeBatch, collection, getDocs } from 'firebase/firestore';
 import { SCHOOL_INFO, SOCIAL_LINKS } from '../../constants';
 import { LoaderCircle } from 'lucide-react';
-import { GalleryAlbum } from '../../types';
+import { GalleryAlbum, ImportantLink, HomepageContent, ProfileContent, PpdbScheduleData, SchoolInfoSettings } from '../../types';
 
-// Dummy data for seeding
-const initialHomepageContent = {
+// Default data for seeding
+const initialHomepageContent: HomepageContent = {
     heroImageUrl: 'https://images.unsplash.com/photo-1576765682835-a73c552096e2?q=80&w=2070&auto=format&fit=crop',
     welcomeTitle: `Selamat Datang di ${SCHOOL_INFO.name}`,
-    welcomeText: `Kami berkomitmen untuk memberikan pendidikan berkualitas yang berlandaskan nilai-nilai Islam, menciptakan generasi yang cerdas, berakhlak mulia, dan berprestasi.`,
+    welcomeText: `Kami berkomitmen untuk memberikan pendidikan berkualitas yang berlandaskan nilai-nilai Islam, menciptakan generasi yang cerdas, berakhlak mulia, dan berprestasi. Madrasah kami memiliki sejarah panjang dalam mendidik putra-putri bangsa dengan kurikulum yang terintegrasi antara ilmu pengetahuan umum dan pendidikan agama yang mendalam.`,
     welcomeImageUrl: 'https://images.unsplash.com/photo-1594400273525-242d20bcca6b?q=80&w=1974&auto=format&fit=crop',
 };
 
-const initialProfileContent = {
-    vision: 'Terwujudnya peserta didik yang berakhlak mulia, cerdas, terampil, dan berprestasi.',
-    mission: 'Menyelenggarakan pendidikan yang berkualitas.\nMengembangkan potensi siswa secara optimal.\nMembina akhlak mulia dan budi pekerti luhur.',
-    orgChartUrl: 'https://via.placeholder.com/800x600.png?text=Bagan+Struktur+Organisasi',
+const initialProfileContent: ProfileContent = {
+    vision: 'Terwujudnya peserta didik yang berakhlak mulia, cerdas, terampil, dan berprestasi berlandaskan Iman dan Taqwa.',
+    mission: 'Menyelenggarakan pendidikan yang berkualitas dan menyenangkan.\nMengembangkan potensi siswa secara optimal sesuai bakat dan minat.\nMembina akhlak mulia dan budi pekerti luhur dalam kehidupan sehari-hari.\nMeningkatkan prestasi akademik dan non-akademik.',
+    orgChartUrl: 'https://i.imgur.com/7vVvT5b.png',
 };
 
-const initialPpdbSchedule = {
+const initialPpdbSchedule: PpdbScheduleData = {
     startDate: '2024-06-01',
     endDate: '2024-06-30',
     announcementDate: '2024-07-10',
 };
 
-const initialSchoolInfo = {
-    info: { ...SCHOOL_INFO },
-    socialLinks: { ...SOCIAL_LINKS }
+const initialImportantLinks: ImportantLink[] = [
+    { name: "Kementerian Agama RI", url: "https://kemenag.go.id/" },
+    { name: "Pendis Kemenag", url: "https://pendis.kemenag.go.id/" },
+    { name: "Pemkot Singkawang", url: "https://singkawangkota.go.id/" },
+];
+
+const initialSchoolInfo: SchoolInfoSettings = {
+    info: { 
+      name: SCHOOL_INFO.name,
+      address: SCHOOL_INFO.address,
+      email: SCHOOL_INFO.email,
+      phone: SCHOOL_INFO.phone,
+      logo: SCHOOL_INFO.logo,
+      affiliation: SCHOOL_INFO.affiliation,
+    },
+    socialLinks: { ...SOCIAL_LINKS },
+    importantLinks: initialImportantLinks,
 };
 
 const initialGalleryAlbums: Omit<GalleryAlbum, 'id'>[] = [
@@ -37,8 +51,9 @@ const initialGalleryAlbums: Omit<GalleryAlbum, 'id'>[] = [
         category: "Kegiatan",
         createdAt: new Date().toISOString(),
         images: [
-            { imageUrl: "https://picsum.photos/seed/17agustus-1/800/600", caption: "Lomba balap karung." },
-            { imageUrl: "https://picsum.photos/seed/17agustus-2/800/600", caption: "Upacara bendera." },
+            { imageUrl: "https://picsum.photos/seed/17agustus-1/800/600", caption: "Lomba balap karung yang diikuti oleh siswa-siswi." },
+            { imageUrl: "https://picsum.photos/seed/17agustus-2/800/600", caption: "Upacara bendera di halaman sekolah." },
+            { imageUrl: "https://picsum.photos/seed/17agustus-3/800/600", caption: "Pemberian hadiah kepada para pemenang lomba." },
         ]
     },
     {
@@ -46,7 +61,7 @@ const initialGalleryAlbums: Omit<GalleryAlbum, 'id'>[] = [
         category: "Prestasi",
         createdAt: new Date().toISOString(),
         images: [
-            { imageUrl: "https://picsum.photos/seed/juara-1/800/600", caption: "Penyerahan piala oleh kepala sekolah." }
+            { imageUrl: "https://picsum.photos/seed/juara-1/800/600", caption: "Tim cerdas cermat MIN Singkawang menerima piala juara pertama." }
         ]
     }
 ];
@@ -73,7 +88,10 @@ const AdminSetupPage: React.FC = () => {
             batch.set(doc(db, 'settings', 'ppdbSchedule'), initialPpdbSchedule);
             batch.set(doc(db, 'settings', 'schoolInfo'), initialSchoolInfo);
 
-            // Gallery Albums
+            // Clear existing gallery and re-seed
+            const gallerySnapshot = await getDocs(collection(db, 'gallery_albums'));
+            gallerySnapshot.forEach(doc => batch.delete(doc.ref));
+
             initialGalleryAlbums.forEach(album => {
                 const albumRef = doc(collection(db, 'gallery_albums'));
                 batch.set(albumRef, album);
@@ -84,7 +102,8 @@ const AdminSetupPage: React.FC = () => {
             setStatusMessage('Setup awal berhasil! Pengaturan dan galeri telah diisi dengan data default.');
         } catch (error) {
             console.error("Database seeding failed:", error);
-            setStatusMessage('Terjadi kesalahan saat setup. Silakan periksa konsol untuk detail.');
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            setStatusMessage(`Terjadi kesalahan saat setup: ${errorMessage}`);
         } finally {
             setIsLoading(false);
         }
@@ -104,7 +123,7 @@ const AdminSetupPage: React.FC = () => {
                 disabled={isLoading}
                 className="w-full bg-red-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-red-700 transition-colors disabled:bg-gray-400 flex items-center justify-center gap-2"
             >
-                {isLoading ? <LoaderCircle className="animate-spin" /> : 'Jalankan Setup Awal'}
+                {isLoading ? <><LoaderCircle className="animate-spin" /> Sedang Memproses...</> : 'Jalankan Setup Awal'}
             </button>
 
             {statusMessage && (
