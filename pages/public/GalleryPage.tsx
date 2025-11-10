@@ -1,52 +1,56 @@
 import React, { useState, useEffect } from 'react';
+import { GalleryAlbum } from '../../types';
 import { db } from '../../services/firebase';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
-import { GalleryAlbum } from '../../types';
-import { Image, LoaderCircle, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Image, Tag, LoaderCircle, X } from 'lucide-react';
 
-const AlbumViewerModal: React.FC<{ album: GalleryAlbum; onClose: () => void }> = ({ album, onClose }) => {
-    const [currentIndex, setCurrentIndex] = useState(0);
-
-    const goToPrevious = () => {
-        const isFirstSlide = currentIndex === 0;
-        const newIndex = isFirstSlide ? album.images.length - 1 : currentIndex - 1;
-        setCurrentIndex(newIndex);
-    };
-
-    const goToNext = () => {
-        const isLastSlide = currentIndex === album.images.length - 1;
-        const newIndex = isLastSlide ? 0 : currentIndex + 1;
-        setCurrentIndex(newIndex);
-    };
+const LightboxModal: React.FC<{ album: GalleryAlbum | null; onClose: () => void }> = ({ album, onClose }) => {
+    if (!album) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-80 z-50 flex justify-center items-center p-4">
-            <div className="relative bg-white rounded-lg shadow-xl w-full max-w-4xl h-full max-h-[90vh] flex flex-col">
-                <div className="p-4 border-b">
-                    <h2 className="text-xl font-bold text-gray-800">{album.title}</h2>
-                    <button onClick={onClose} className="absolute top-4 right-4 text-gray-600 hover:text-black"><X /></button>
-                </div>
-                <div className="flex-1 flex items-center justify-center p-4 relative">
-                    {album.images.length > 1 && (
-                        <>
-                            <button onClick={goToPrevious} className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-white/50 p-2 rounded-full hover:bg-white"><ChevronLeft /></button>
-                            <button onClick={goToNext} className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-white/50 p-2 rounded-full hover:bg-white"><ChevronRight /></button>
-                        </>
-                    )}
-                    <div className="w-full h-full flex flex-col items-center justify-center">
-                        <img 
-                            src={album.images[currentIndex].imageUrl} 
-                            alt={album.images[currentIndex].caption} 
-                            className="max-w-full max-h-full object-contain"
-                        />
-                         <p className="mt-2 text-center text-sm text-gray-600 bg-gray-100 p-2 rounded-md w-full">{album.images[currentIndex].caption}</p>
+        <div className="fixed inset-0 bg-black bg-opacity-80 z-50 flex justify-center items-center p-4" onClick={onClose}>
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-auto relative" onClick={e => e.stopPropagation()}>
+                <button onClick={onClose} className="absolute top-2 right-2 text-black bg-white/70 rounded-full p-1 z-10 hover:bg-white transition-colors">
+                    <X size={24} />
+                </button>
+                <div className="p-6">
+                    <h2 className="text-2xl font-bold font-poppins text-gray-800 mb-4">{album.title}</h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {album.images.map((image, index) => (
+                            <div key={index} className="rounded-lg overflow-hidden border">
+                                <img src={image.imageUrl} alt={image.caption || 'Gallery image'} className="w-full h-48 object-cover" />
+                                {image.caption && <p className="text-xs text-gray-600 bg-gray-50 p-2">{image.caption}</p>}
+                            </div>
+                        ))}
                     </div>
                 </div>
-                 <div className="text-center p-2 text-sm text-gray-500">{currentIndex + 1} / {album.images.length}</div>
             </div>
         </div>
     );
 };
+
+const AlbumCard: React.FC<{ album: GalleryAlbum; onClick: () => void }> = ({ album, onClick }) => (
+    <button onClick={onClick} className="text-left bg-white rounded-lg shadow-md overflow-hidden transform hover:-translate-y-1 transition-transform duration-300 group w-full">
+         <div className="relative">
+            <img 
+                src={album.images[0]?.imageUrl || 'https://via.placeholder.com/400x300.png?text=No+Image'} 
+                alt={album.title} 
+                className="w-full h-56 object-cover" 
+            />
+            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 flex items-center justify-center transition-all duration-300">
+                <p className="text-white text-lg font-bold opacity-0 group-hover:opacity-100 transition-opacity">
+                    {album.images.length} Foto
+                </p>
+            </div>
+        </div>
+        <div className="p-4">
+            <h3 className="text-lg font-bold font-poppins text-gray-800 truncate">{album.title}</h3>
+            <div className="flex items-center text-sm text-gray-500 mt-1">
+                <Tag size={14} className="mr-1.5" /> {album.category}
+            </div>
+        </div>
+    </button>
+);
 
 const GalleryPage: React.FC = () => {
     const [albums, setAlbums] = useState<GalleryAlbum[]>([]);
@@ -56,50 +60,39 @@ const GalleryPage: React.FC = () => {
     useEffect(() => {
         const fetchAlbums = async () => {
             setIsLoading(true);
-            const q = query(collection(db, "gallery_albums"), orderBy("createdAt", "desc"));
-            const querySnapshot = await getDocs(q);
-            const albumData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as GalleryAlbum));
-            setAlbums(albumData);
+            const albumsCollectionRef = collection(db, "gallery_albums");
+            const q = query(albumsCollectionRef, orderBy("createdAt", "desc"));
+            const data = await getDocs(q);
+            const albumsData = data.docs.map(doc => ({ ...doc.data(), id: doc.id } as GalleryAlbum));
+            setAlbums(albumsData);
             setIsLoading(false);
         };
         fetchAlbums();
     }, []);
 
     return (
-        <>
-            <div className="bg-light">
-                <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
-                    <h1 className="text-4xl font-bold font-poppins text-center text-primary mb-10 flex items-center justify-center gap-3">
-                        <Image size={36} /> Galeri Sekolah
-                    </h1>
-                    
-                    {isLoading ? (
-                        <div className="flex justify-center items-center py-20">
-                            <LoaderCircle className="animate-spin text-primary" size={40} />
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                            {albums.map((album) => (
-                                <div key={album.id} onClick={() => setSelectedAlbum(album)} className="group cursor-pointer overflow-hidden rounded-lg shadow-lg bg-white">
-                                    <div className="relative h-56">
-                                         <img src={album.images[0]?.imageUrl} alt={album.title} className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-300" />
-                                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                                    </div>
-                                    <div className="p-4">
-                                        <h3 className="text-md font-bold font-poppins text-gray-800 truncate">{album.title}</h3>
-                                        <p className="text-sm text-gray-500">{album.images.length} foto</p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                     {albums.length === 0 && !isLoading && (
-                        <p className="text-center text-gray-500 mt-8">Belum ada album galeri yang diunggah.</p>
-                    )}
-                </div>
+        <div className="bg-light">
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
+                <h1 className="text-4xl font-bold font-poppins text-center text-primary mb-10 flex items-center justify-center gap-3">
+                    <Image size={36} />
+                    Galeri Sekolah
+                </h1>
+                {isLoading ? (
+                    <div className="flex justify-center items-center py-20">
+                        <LoaderCircle className="animate-spin text-primary" size={40} />
+                    </div>
+                ) : albums.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+                        {albums.map(album => (
+                            <AlbumCard key={album.id} album={album} onClick={() => setSelectedAlbum(album)} />
+                        ))}
+                    </div>
+                ) : (
+                    <p className="text-center text-gray-500 mt-8">Belum ada album foto yang dipublikasikan.</p>
+                )}
             </div>
-            {selectedAlbum && <AlbumViewerModal album={selectedAlbum} onClose={() => setSelectedAlbum(null)} />}
-        </>
+            {selectedAlbum && <LightboxModal album={selectedAlbum} onClose={() => setSelectedAlbum(null)} />}
+        </div>
     );
 };
 
