@@ -108,10 +108,12 @@ const PpdbForm: React.FC<{ setView: (view: View) => void, setApplicantResult: (a
     }
     
     const getInputClass = (fieldName: keyof typeof formData) => 
-        `w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent ${
+        `w-full px-4 py-2 border rounded-lg focus:ring-2 focus:border-transparent bg-white text-gray-900 ${
             errors[fieldName] ? 'border-red-500 focus:ring-red-400' : 'border-gray-300 focus:ring-primary'
         }`;
     
+    const fileInputClass = "text-sm w-full text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-primary hover:file:bg-green-100 cursor-pointer";
+
     return (
         <div className="bg-white p-8 rounded-lg shadow-md">
             <h2 className="text-2xl font-bold font-poppins text-primary mb-6">Formulir Pendaftaran Siswa Baru</h2>
@@ -135,9 +137,9 @@ const PpdbForm: React.FC<{ setView: (view: View) => void, setApplicantResult: (a
                 <div className="space-y-2">
                     <label className="block text-sm font-medium text-gray-700">Upload Dokumen (PDF/JPG)</label>
                     <div className="grid sm:grid-cols-3 gap-4">
-                        <div><label className="text-xs">Kartu Keluarga (KK)*</label><input type="file" name="docKk" onChange={handleFileChange} className="text-sm w-full"/>{errors.docKk && <p className="text-red-500 text-xs mt-1">{errors.docKk}</p>}</div>
-                        <div><label className="text-xs">Akta Kelahiran*</label><input type="file" name="docAkta" onChange={handleFileChange} className="text-sm w-full"/>{errors.docAkta && <p className="text-red-500 text-xs mt-1">{errors.docAkta}</p>}</div>
-                        <div><label className="text-xs">Ijazah TK/RA</label><input type="file" name="docIjazah" onChange={handleFileChange} className="text-sm w-full"/></div>
+                        <div><label className="text-xs">Kartu Keluarga (KK)*</label><input type="file" name="docKk" onChange={handleFileChange} className={fileInputClass}/>{errors.docKk && <p className="text-red-500 text-xs mt-1">{errors.docKk}</p>}</div>
+                        <div><label className="text-xs">Akta Kelahiran*</label><input type="file" name="docAkta" onChange={handleFileChange} className={fileInputClass}/>{errors.docAkta && <p className="text-red-500 text-xs mt-1">{errors.docAkta}</p>}</div>
+                        <div><label className="text-xs">Ijazah TK/RA</label><input type="file" name="docIjazah" onChange={handleFileChange} className={fileInputClass}/></div>
                     </div>
                 </div>
                 <button type="submit" className="w-full bg-secondary text-primary font-bold py-3 px-6 rounded-lg hover:bg-yellow-400 transition-colors duration-300 flex items-center justify-center gap-2">
@@ -168,7 +170,7 @@ const PpdbStatusCheck: React.FC<{ setView: (view: View) => void, setApplicantRes
                     value={regNum}
                     onChange={(e) => setRegNum(e.target.value)}
                     placeholder="Contoh: PPDB24001" 
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary bg-white text-gray-900"
                     required
                 />
                 <button type="submit" className="mt-4 w-full bg-primary text-white font-bold py-3 px-6 rounded-lg hover:bg-primary-dark transition-colors duration-300 flex items-center justify-center gap-2">

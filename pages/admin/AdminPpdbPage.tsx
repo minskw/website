@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { mockPpdbApplicants } from '../../services/mockApi';
 import { PpdbApplicant, PpdbStatus } from '../../types';
@@ -40,7 +39,7 @@ const AdminPpdbPage: React.FC = () => {
             placeholder="Cari nama, NIK, No. Pendaftaran..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border rounded-lg"
+            className="w-full pl-10 pr-4 py-2 border rounded-lg bg-white text-gray-900"
           />
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
         </div>
@@ -49,7 +48,7 @@ const AdminPpdbPage: React.FC = () => {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as PpdbStatus | 'all')}
-            className="border rounded-lg p-2"
+            className="border rounded-lg p-2 bg-white text-gray-900"
           >
             <option value="all">Semua Status</option>
             {Object.values(PpdbStatus).map(status => (

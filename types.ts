@@ -71,6 +71,12 @@ export interface AcademicRecord {
   date: string;
 }
 
+export interface SemesterData {
+  semesterId: string;
+  semesterName: string;
+  records: AcademicRecord[];
+}
+
 export interface AttendanceRecord {
   date: string;
   status: 'Hadir' | 'Sakit' | 'Izin' | 'Alpa';

@@ -1,4 +1,4 @@
-import { NewsArticle, Teacher, GalleryImage, PpdbApplicant, PpdbStatus, Parent, Student, AcademicRecord, AttendanceRecord, SchoolAnnouncement } from '../types';
+import { NewsArticle, Teacher, GalleryImage, PpdbApplicant, PpdbStatus, Parent, Student, AcademicRecord, AttendanceRecord, SchoolAnnouncement, SemesterData } from '../types';
 
 export const mockNews: NewsArticle[] = [
   {
@@ -68,13 +68,13 @@ export const mockNews: NewsArticle[] = [
 
 export const mockTeachers: Teacher[] = [
   { id: 't1', name: 'Drs. H. Muhammad Saleh', position: 'Kepala Madrasah', subject: 'Manajerial', imageUrl: 'https://i.pravatar.cc/150?u=t1' },
-  { id: 't2', name: 'Siti Aminah, S.Pd.I', position: 'Waka Kurikulum', subject: 'Aqidah Akhlak', imageUrl: 'https://i.pravatar.cc/150?u=t2' },
-  { id: 't3', name: 'Ahmad Fauzi, S.Ag', position: 'Guru Kelas VI', subject: 'Tematik', imageUrl: 'https://i.pravatar.cc/150?u=t3' },
+  { id: 't2', name: 'Siti Aminah, S.Pd.I', position: 'Waka Kurikulum', subject: 'Akidah Akhlak & SKI', imageUrl: 'https://i.pravatar.cc/150?u=t2' },
+  { id: 't3', name: 'Ahmad Fauzi, S.Ag', position: 'Guru Kelas VI', subject: 'IPAS & Pendidikan Pancasila', imageUrl: 'https://i.pravatar.cc/150?u=t3' },
   { id: 't4', name: 'Zainab, S.Pd', position: 'Guru Kelas V', subject: 'Matematika', imageUrl: 'https://i.pravatar.cc/150?u=t4' },
-  { id: 't5', name: 'Budi Santoso, S.Kom', position: 'Guru TIK', subject: 'Teknologi Informasi', imageUrl: 'https://i.pravatar.cc/150?u=t5' },
+  { id: 't5', name: 'Budi Santoso, S.Kom', position: 'Guru Bahasa Arab', subject: 'Bahasa Arab', imageUrl: 'https://i.pravatar.cc/150?u=t5' },
   { id: 't6', name: 'Dewi Lestari, S.Pd', position: 'Guru Kelas IV', subject: 'Bahasa Indonesia', imageUrl: 'https://i.pravatar.cc/150?u=t6' },
   { id: 't7', name: 'Irfan Hakim, S.Pd.Or', position: 'Guru Olahraga', subject: 'PJOK', imageUrl: 'https://i.pravatar.cc/150?u=t7' },
-  { id: 't8', name: 'Nurhayati, S.Ag', position: 'Guru Kelas III', subject: 'Fiqih', imageUrl: 'https://i.pravatar.cc/150?u=t8' },
+  { id: 't8', name: 'Nurhayati, S.Ag', position: 'Guru PAI', subject: 'Al-Qur\'an Hadis & Fikih', imageUrl: 'https://i.pravatar.cc/150?u=t8' },
 ];
 
 export const mockGallery: GalleryImage[] = [
@@ -167,19 +167,43 @@ export const mockParents: Parent[] = [
 ];
 
 export const mockAcademicRecords: AcademicRecord[] = [
-    { subject: 'Matematika', score: 88, teacher: 'Zainab, S.Pd', date: '2024-06-15' },
-    { subject: 'Bahasa Indonesia', score: 92, teacher: 'Dewi Lestari, S.Pd', date: '2024-06-15' },
-    { subject: 'Aqidah Akhlak', score: 95, teacher: 'Siti Aminah, S.Pd.I', date: '2024-06-15' },
-    { subject: 'PJOK', score: 85, teacher: 'Irfan Hakim, S.Pd.Or', date: '2024-06-15' },
-    { subject: 'TIK', score: 90, teacher: 'Budi Santoso, S.Kom', date: '2024-06-15' },
+    { subject: 'Al-Qur\'an Hadis', score: 92, teacher: 'Nurhayati, S.Ag', date: '2024-06-15' },
+    { subject: 'Akidah Akhlak', score: 95, teacher: 'Siti Aminah, S.Pd.I', date: '2024-06-15' },
+    { subject: 'Fikih', score: 88, teacher: 'Nurhayati, S.Ag', date: '2024-06-15' },
+    { subject: 'Bahasa Indonesia', score: 90, teacher: 'Dewi Lestari, S.Pd', date: '2024-06-15' },
+    { subject: 'Matematika', score: 85, teacher: 'Zainab, S.Pd', date: '2024-06-15' },
+    { subject: 'IPAS', score: 89, teacher: 'Ahmad Fauzi, S.Ag', date: '2024-06-15' },
+    { subject: 'Bahasa Arab', score: 87, teacher: 'Budi Santoso, S.Kom', date: '2024-06-15' },
+];
+
+export const mockSemesterData: SemesterData[] = [
+  {
+    semesterId: '2023-genap',
+    semesterName: 'Semester Genap 2023/2024',
+    records: mockAcademicRecords,
+  },
+  {
+    semesterId: '2023-ganjil',
+    semesterName: 'Semester Ganjil 2023/2024',
+    records: [
+      { subject: 'Al-Qur\'an Hadis', score: 90, teacher: 'Nurhayati, S.Ag', date: '2023-12-10' },
+      { subject: 'Akidah Akhlak', score: 94, teacher: 'Siti Aminah, S.Pd.I', date: '2023-12-10' },
+      { subject: 'Fikih', score: 85, teacher: 'Nurhayati, S.Ag', date: '2023-12-10' },
+      { subject: 'Bahasa Indonesia', score: 88, teacher: 'Dewi Lestari, S.Pd', date: '2023-12-10' },
+      { subject: 'Matematika', score: 82, teacher: 'Zainab, S.Pd', date: '2023-12-10' },
+      { subject: 'IPAS', score: 87, teacher: 'Ahmad Fauzi, S.Ag', date: '2023-12-10' },
+      { subject: 'Pendidikan Pancasila', score: 91, teacher: 'Ahmad Fauzi, S.Ag', date: '2023-12-10' },
+      { subject: 'PJOK', score: 90, teacher: 'Irfan Hakim, S.Pd.Or', date: '2023-12-10' },
+    ],
+  },
 ];
 
 export const mockAttendanceRecords: AttendanceRecord[] = [
-    { date: '2024-07-15', status: 'Hadir' },
-    { date: '2024-07-16', status: 'Hadir' },
-    { date: '2024-07-17', status: 'Sakit' },
-    { date: '2024-07-18', status: 'Hadir' },
     { date: '2024-07-19', status: 'Hadir' },
+    { date: '2024-07-18', status: 'Sakit' },
+    { date: '2024-07-17', status: 'Hadir' },
+    { date: '2024-07-16', status: 'Alpa' },
+    { date: '2024-07-15', status: 'Hadir' },
 ];
 
 export const mockSchoolAnnouncements: SchoolAnnouncement[] = [
