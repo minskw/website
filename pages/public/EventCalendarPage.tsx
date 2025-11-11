@@ -88,7 +88,8 @@ const EventCalendarPage: React.FC = () => {
                             <div key={monthYear}>
                                 <h2 className="text-2xl font-bold font-poppins text-gray-700 mb-4 border-b-2 border-primary pb-2">{monthYear}</h2>
                                 <div className="space-y-4">
-                                    {monthEvents.map(event => <EventCard key={event.id} event={event} />)}
+                                    {/* FIX: Add a type assertion to `monthEvents` before calling `.map()` to resolve the "Property 'map' does not exist on type 'unknown'" error. This helps TypeScript correctly infer the type as an array. */}
+                                    {(monthEvents as SchoolEvent[]).map(event => <EventCard key={event.id} event={event} />)}
                                 </div>
                             </div>
                         ))}

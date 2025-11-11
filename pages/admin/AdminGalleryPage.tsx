@@ -1,45 +1,88 @@
 import React, { useState, useEffect, FormEvent } from 'react';
-import { db } from '../../services/firebase';
+import { db, storage } from '../../services/firebase';
 import { collection, doc, addDoc, updateDoc, deleteDoc, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { GalleryAlbum, GalleryImageItem } from '../../types';
 import { PlusCircle, Edit, Trash2, LoaderCircle, X, ImagePlus, MinusCircle } from 'lucide-react';
 
-type AlbumFormData = Omit<GalleryAlbum, 'id' | 'createdAt'>;
-
-const emptyAlbum: AlbumFormData = {
-    title: '',
-    category: 'Kegiatan',
-    images: [{ imageUrl: '', caption: '' }],
+// Types for the form state, which can include local File objects for new uploads
+type FormImageItem = GalleryImageItem & { file?: File };
+type AlbumFormState = Omit<GalleryAlbum, 'id' | 'createdAt' | 'images'> & {
+    images: FormImageItem[];
 };
 
-const AlbumFormModal: React.FC<{
+const emptyAlbum: AlbumFormState = {
+    title: '',
+    category: 'Kegiatan',
+    images: [{ imageUrl: '', caption: '', file: undefined }],
+};
+
+interface AlbumFormModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (album: AlbumFormData, id?: string) => void;
+    onSave: (album: AlbumFormState, id?: string) => void;
     album: GalleryAlbum | null;
-}> = ({ isOpen, onClose, onSave, album }) => {
-    const [formData, setFormData] = useState<AlbumFormData>(emptyAlbum);
+    isSaving: boolean;
+}
+
+const AlbumFormModal: React.FC<AlbumFormModalProps> = ({ isOpen, onClose, onSave, album, isSaving }) => {
+    const [formData, setFormData] = useState<AlbumFormState>(emptyAlbum);
 
     useEffect(() => {
-        setFormData(album ? { ...album } : emptyAlbum);
+        if (album) {
+            // When editing, images from DB don't have a `file` property initially.
+            const imagesWithFileProp = album.images.map(img => ({ ...img, file: undefined }));
+            setFormData({ ...album, images: imagesWithFileProp });
+        } else {
+            setFormData(emptyAlbum);
+        }
     }, [album, isOpen]);
+    
+    // Effect to clean up blob URLs to prevent memory leaks
+    useEffect(() => {
+        return () => {
+            formData.images.forEach(image => {
+                if (image.imageUrl.startsWith('blob:')) {
+                    URL.revokeObjectURL(image.imageUrl);
+                }
+            });
+        };
+    }, [formData.images]);
+
 
     const handleAlbumChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
     };
 
-    const handleImageChange = (index: number, field: keyof GalleryImageItem, value: string) => {
+    const handleImageFileChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const newFile = e.target.files[0];
+            const newImages = [...formData.images];
+            // If there's an old blob URL, revoke it
+            if (newImages[index].imageUrl.startsWith('blob:')) {
+                URL.revokeObjectURL(newImages[index].imageUrl);
+            }
+            newImages[index] = { ...newImages[index], file: newFile, imageUrl: URL.createObjectURL(newFile) };
+            setFormData(prev => ({ ...prev, images: newImages }));
+        }
+    };
+
+    const handleImageCaptionChange = (index: number, value: string) => {
         const newImages = [...formData.images];
-        newImages[index][field] = value;
+        newImages[index].caption = value;
         setFormData(prev => ({ ...prev, images: newImages }));
     };
 
     const addImageField = () => {
-        setFormData(prev => ({ ...prev, images: [...prev.images, { imageUrl: '', caption: '' }] }));
+        setFormData(prev => ({ ...prev, images: [...prev.images, { imageUrl: '', caption: '', file: undefined }] }));
     };
 
     const removeImageField = (index: number) => {
         if (formData.images.length <= 1) return; // Must have at least one image
+        const imageToRemove = formData.images[index];
+        if (imageToRemove.imageUrl.startsWith('blob:')) {
+            URL.revokeObjectURL(imageToRemove.imageUrl);
+        }
         const newImages = formData.images.filter((_, i) => i !== index);
         setFormData(prev => ({ ...prev, images: newImages }));
     };
@@ -65,11 +108,14 @@ const AlbumFormModal: React.FC<{
                         
                         <h3 className="font-semibold pt-2 border-t">Gambar</h3>
                         {formData.images.map((image, index) => (
-                            <div key={index} className="flex gap-2 items-start p-2 border rounded-md">
-                                <span className="pt-2 font-bold">{index + 1}.</span>
+                            <div key={index} className="flex gap-2 items-start p-3 border rounded-md bg-gray-50">
+                                <span className="pt-2 font-bold text-gray-500">{index + 1}.</span>
                                 <div className="flex-grow space-y-2">
-                                     <input value={image.imageUrl} onChange={e => handleImageChange(index, 'imageUrl', e.target.value)} placeholder="URL Gambar" className="w-full p-2 border rounded" required />
-                                     <input value={image.caption} onChange={e => handleImageChange(index, 'caption', e.target.value)} placeholder="Keterangan (Caption)" className="w-full p-2 border rounded" />
+                                     {image.imageUrl && (
+                                        <img src={image.imageUrl} alt="Preview" className="w-32 h-32 object-cover rounded-md border"/>
+                                     )}
+                                     <input type="file" accept="image/*" onChange={e => handleImageFileChange(index, e)} className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-dark/10 file:text-primary-dark hover:file:bg-primary-dark/20" />
+                                     <input value={image.caption} onChange={e => handleImageCaptionChange(index, e.target.value)} placeholder="Keterangan (Caption)" className="w-full p-2 border rounded" />
                                 </div>
                                 <button type="button" onClick={() => removeImageField(index)} className="p-2 text-red-500 hover:text-red-700" title="Hapus Gambar">
                                     <MinusCircle size={20} />
@@ -82,7 +128,10 @@ const AlbumFormModal: React.FC<{
                     </div>
                     <div className="flex justify-end gap-2 mt-6">
                         <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 rounded">Batal</button>
-                        <button type="submit" className="px-4 py-2 bg-primary text-white rounded">Simpan Album</button>
+                        <button type="submit" disabled={isSaving} className="px-4 py-2 bg-primary text-white rounded disabled:bg-gray-400 flex items-center gap-2">
+                            {isSaving && <LoaderCircle className="animate-spin" size={18} />}
+                            {isSaving ? 'Menyimpan...' : 'Simpan Album'}
+                        </button>
                     </div>
                 </form>
             </div>
@@ -95,6 +144,7 @@ const AdminGalleryPage: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedAlbum, setSelectedAlbum] = useState<GalleryAlbum | null>(null);
+    const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
         setIsLoading(true);
@@ -107,17 +157,45 @@ const AdminGalleryPage: React.FC = () => {
         return () => unsubscribe();
     }, []);
 
-    const handleSave = async (data: AlbumFormData, id?: string) => {
+    const handleSave = async (data: AlbumFormState, id?: string) => {
+        setIsSaving(true);
         try {
+            // 1. Upload new image files and get their URLs
+            const uploadedImages = await Promise.all(
+                data.images.map(async (image) => {
+                    if (image.file) { // If there's a new file, upload it
+                        const storageRef = ref(storage, `gallery_images/${Date.now()}-${image.file.name}`);
+                        const snapshot = await uploadBytes(storageRef, image.file);
+                        const downloadURL = await getDownloadURL(snapshot.ref);
+                        return { imageUrl: downloadURL, caption: image.caption };
+                    }
+                    // If no file, it's an existing image. Keep its data.
+                    return { imageUrl: image.imageUrl, caption: image.caption };
+                })
+            );
+
+            // 2. Filter out any empty image fields
+            const finalImages = uploadedImages.filter(img => img.imageUrl);
+
+            // 3. Prepare the final data object for Firestore
+            const finalAlbumData = {
+                title: data.title,
+                category: data.category,
+                images: finalImages,
+            };
+
+            // 4. Save to Firestore
             if (id) {
-                await updateDoc(doc(db, "gallery_albums", id), data);
+                await updateDoc(doc(db, "gallery_albums", id), finalAlbumData);
             } else {
-                await addDoc(collection(db, "gallery_albums"), { ...data, createdAt: new Date().toISOString() });
+                await addDoc(collection(db, "gallery_albums"), { ...finalAlbumData, createdAt: new Date().toISOString() });
             }
             setIsModalOpen(false);
         } catch (error) {
             console.error("Error saving album:", error);
             alert("Gagal menyimpan album.");
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -169,7 +247,13 @@ const AdminGalleryPage: React.FC = () => {
                     </table>
                 </div>
             )}
-            <AlbumFormModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSave} album={selectedAlbum} />
+            <AlbumFormModal 
+                isOpen={isModalOpen} 
+                onClose={() => setIsModalOpen(false)} 
+                onSave={handleSave} 
+                album={selectedAlbum}
+                isSaving={isSaving}
+            />
         </div>
     );
 };

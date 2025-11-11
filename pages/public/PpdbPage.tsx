@@ -45,7 +45,8 @@ const PpdbPage: React.FC = () => {
 
         try {
             // Basic validation
-            if (Object.values(formData).some(val => val.trim() === '')) {
+            // FIX: Add type guard to ensure value is a string before calling .trim() to resolve "Property 'trim' does not exist on type 'unknown'" error.
+            if (Object.values(formData).some(val => typeof val === 'string' && val.trim() === '')) {
                 throw new Error("Semua field wajib diisi.");
             }
             if (formData.nik.length !== 16) {
