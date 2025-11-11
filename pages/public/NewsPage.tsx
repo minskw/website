@@ -5,37 +5,23 @@ import { collection, doc, getDoc, getDocs, query, orderBy } from 'firebase/fires
 import { NewsArticle } from '../../types';
 import { LoaderCircle, Calendar, ArrowLeft } from 'lucide-react';
 
-const NewsCard: React.FC<{ article: NewsArticle }> = ({ article }) => {
-    const date = new Date(article.date + 'T00:00:00');
-    const day = date.toLocaleDateString('id-ID', { day: '2-digit' });
-    const month = date.toLocaleDateString('id-ID', { month: 'short' });
-    const year = date.toLocaleDateString('id-ID', { year: 'numeric' });
-
-    return (
-        <article className="mediapost flex flex-col md:flex-row bg-white shadow-md hover:shadow-lg transition-shadow duration-300">
-             <div className="scinfo w-full md:w-[15%] flex-shrink-0 flex md:flex-col items-stretch">
-                <div className="scdate w-full bg-[--sch-body-color-yellow] p-2.5 flex flex-wrap justify-center items-center text-center leading-tight font-archivo">
-                    <span className="day text-3xl font-extrabold leading-none">{day}</span>
-                    <span className="month text-base font-medium mx-1.5">{month}</span>
-                    <span className="year text-sm">{year}</span>
-                </div>
-                <div className="jumlah-comments w-[30%] md:w-full bg-[--sch-main-color] text-white flex justify-center items-center p-2.5 text-xs">
-                    {article.category}
-                </div>
-            </div>
-            <div className="boxinfo w-full md:w-[85%] p-4 md:pl-5 flex flex-col justify-center">
-                 <h2 className='text-lg font-bold mb-2 leading-tight text-dark hover:text-primary transition-colors'>
-                    <Link to={`/berita/${article.id}`}>{article.title}</Link>
-                 </h2>
-                 <p className="post-snippet text-sm text-gray-600 mb-3">{article.excerpt}</p>
-                 <Link to={`/berita/${article.id}`} className="font-semibold text-primary text-sm hover:underline self-start">
-                    Baca Selengkapnya
-                </Link>
-            </div>
-        </article>
-    );
-};
-
+const NewsCard: React.FC<{ article: NewsArticle }> = ({ article }) => (
+    <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300">
+        <Link to={`/berita/${article.id}`}>
+            <img className="w-full h-48 object-cover" src={article.imageUrl} alt={article.title} />
+        </Link>
+        <div className="p-6">
+            <p className="text-sm text-gray-500 mb-1">{new Date(article.date + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })} - <span className="font-semibold text-primary">{article.category}</span></p>
+            <h3 className="text-xl font-bold font-sans text-dark mb-2">
+                <Link to={`/berita/${article.id}`} className="hover:text-primary transition-colors">{article.title}</Link>
+            </h3>
+            <p className="text-gray-600 text-sm mb-4">{article.excerpt}</p>
+            <Link to={`/berita/${article.id}`} className="font-semibold text-primary hover:underline">
+                Baca Selengkapnya
+            </Link>
+        </div>
+    </div>
+);
 
 const NewsContent: React.FC<{ content: string }> = ({ content }) => {
     return (
@@ -116,7 +102,7 @@ const NewsPage: React.FC = () => {
                     <>
                         <h1 className="text-4xl font-bold font-sans text-center text-primary mb-10">Arsip Berita</h1>
                         {articles.length > 0 ? (
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                                 {articles.map(art => <NewsCard key={art.id} article={art} />)}
                             </div>
                         ) : (

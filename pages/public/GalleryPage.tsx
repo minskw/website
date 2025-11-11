@@ -30,22 +30,23 @@ const LightboxModal: React.FC<{ album: GalleryAlbum | null; onClose: () => void 
 };
 
 const AlbumCard: React.FC<{ album: GalleryAlbum; onClick: () => void }> = ({ album, onClick }) => (
-    <div className="relative group overflow-hidden rounded-lg">
-        <div className="relative pt-[75%]"> {/* 4:3 Aspect Ratio */}
+    <div className="bg-white rounded-lg shadow-md overflow-hidden group cursor-pointer" onClick={onClick}>
+        <div className="relative">
             <img 
                 src={album.images[0]?.imageUrl || 'https://via.placeholder.com/400x300.png?text=No+Image'} 
                 alt={album.title} 
-                className="absolute top-0 left-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
+                className="w-full h-48 object-cover" 
             />
-        </div>
-        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center p-4">
-            <div className="text-center text-white">
-                <button onClick={onClick} className="w-12 h-12 flex items-center justify-center bg-white rounded-full text-dark hover:bg-gray-200 transition-all duration-300 transform scale-0 group-hover:scale-100" style={{ transitionDelay: '100ms' }}>
-                    <Image size={24}/>
-                </button>
-                <h3 className="font-bold font-sans mt-3 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300 delay-200">{album.title}</h3>
-                <p className="text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-300">{album.category}</p>
+            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all duration-300 flex items-center justify-center">
+                 <Image size={40} className="text-white opacity-0 group-hover:opacity-100 transform scale-75 group-hover:scale-100 transition-all duration-300" />
             </div>
+        </div>
+        <div className="p-4">
+            <h3 className="text-lg font-bold text-dark">{album.title}</h3>
+            <p className="text-sm text-gray-500 flex items-center gap-2 mt-1">
+                <Tag size={14} />
+                {album.category}
+            </p>
         </div>
     </div>
 );

@@ -5,59 +5,23 @@ import { doc, getDoc, collection, getDocs, limit, query, orderBy } from 'firebas
 import { HomepageContent, NewsArticle } from '../../types';
 import { LoaderCircle } from 'lucide-react';
 
-const AnimatedCounter: React.FC<{ target: number }> = ({ target }) => {
-    const [count, setCount] = useState(0);
-  
-    useEffect(() => {
-      const duration = 2000; 
-      const stepTime = Math.abs(Math.floor(duration / target));
-      let currentCount = 0;
-      
-      const timer = setInterval(() => {
-        currentCount += 1;
-        setCount(currentCount);
-        if (currentCount >= target) {
-          clearInterval(timer);
-          setCount(target); // Ensure it ends exactly on target
-        }
-      }, stepTime);
-  
-      return () => clearInterval(timer);
-    }, [target]);
-  
-    return <span>{count}</span>;
-};
-
-const NewsCard: React.FC<{ article: NewsArticle, isPage: boolean }> = ({ article, isPage }) => {
-    const date = new Date(article.date + 'T00:00:00');
-    const day = date.toLocaleDateString('id-ID', { day: '2-digit' });
-    const month = date.toLocaleDateString('id-ID', { month: 'short' });
-    const year = date.toLocaleDateString('id-ID', { year: 'numeric' });
-    
-    return (
-        <article className="mediapost flex flex-col md:flex-row bg-white shadow-md hover:shadow-lg transition-shadow duration-300">
-             <div className="scinfo w-full md:w-[15%] flex-shrink-0 flex md:flex-col items-stretch">
-                <div className="scdate w-full bg-[--sch-body-color-yellow] p-2.5 flex flex-wrap justify-center items-center text-center leading-tight font-archivo">
-                    <span className="day text-3xl font-extrabold leading-none">{day}</span>
-                    <span className="month text-base font-medium mx-1.5">{month}</span>
-                    <span className="year text-sm">{year}</span>
-                </div>
-                <div className="jumlah-comments w-[30%] md:w-full bg-[--sch-main-color] text-white flex justify-center items-center p-2.5 text-xs">
-                    {article.category}
-                </div>
-            </div>
-            <div className="boxinfo w-full md:w-[85%] p-4 md:pl-5 flex flex-col justify-center">
-                 <h2 className='text-lg font-bold mb-2 leading-tight text-dark hover:text-primary transition-colors'>
-                    <Link to={`/berita/${article.id}`}>{article.title}</Link>
-                 </h2>
-                 <p className="post-snippet text-sm text-gray-600 mb-3">{article.excerpt}</p>
-                 <Link to={`/berita/${article.id}`} className="font-semibold text-primary text-sm hover:underline self-start">
-                    Baca Selengkapnya
-                </Link>
-            </div>
-        </article>
-    );
-};
+const NewsCard: React.FC<{ article: NewsArticle }> = ({ article }) => (
+    <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300">
+        <Link to={`/berita/${article.id}`}>
+            <img className="w-full h-48 object-cover" src={article.imageUrl} alt={article.title} />
+        </Link>
+        <div className="p-6">
+            <p className="text-sm text-gray-500 mb-1">{new Date(article.date + 'T00:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })} - <span className="font-semibold text-primary">{article.category}</span></p>
+            <h3 className="text-xl font-bold font-sans text-dark mb-2">
+                <Link to={`/berita/${article.id}`} className="hover:text-primary transition-colors">{article.title}</Link>
+            </h3>
+            <p className="text-gray-600 text-sm mb-4">{article.excerpt}</p>
+            <Link to={`/berita/${article.id}`} className="font-semibold text-primary hover:underline">
+                Baca Selengkapnya
+            </Link>
+        </div>
+    </div>
+);
 
 
 const HomePage: React.FC = () => {
@@ -73,7 +37,7 @@ const HomePage: React.FC = () => {
                 const contentDoc = await getDoc(contentDocRef);
                 if (contentDoc.exists()) setContent(contentDoc.data() as HomepageContent);
 
-                const newsQuery = query(collection(db, 'news'), orderBy('date', 'desc'), limit(4));
+                const newsQuery = query(collection(db, 'news'), orderBy('date', 'desc'), limit(3));
                 const newsSnap = await getDocs(newsQuery);
                 setLatestNews(newsSnap.docs.map(d => ({ ...d.data(), id: d.id } as NewsArticle)));
             } catch (error) {
@@ -88,96 +52,33 @@ const HomePage: React.FC = () => {
     if (isLoading) {
         return <div className="flex justify-center items-center min-h-screen"><LoaderCircle className="animate-spin text-primary" size={48} /></div>;
     }
-    
-    const displayContent = content || {
-        heroImageUrl: 'https://blogger.googleusercontent.com/img/a/AVvXsEhvUhvt2omPKy2GnbfGBhcwIulzWNsjTc2X_BVal-GUz7AVnZinzqdHfR3h7fVqM8S26pYqFF1ER3p4rPKmKRRSSOVoYaWYEz_aaNE6zZh4kzWFFxcuyaUnaohWtnei2k8SiN8rfaV-llmQiseEHCY8-8dgZAbtK1blNGdYeufkMuwwqlwzRN3M6fcvGEnh=s1600',
-        welcomeTitle: `Selamat Datang di MIN Singkawang`,
-        welcomeText: 'Membekali generasi penerus bangsa dengan dasar-dasar wawasan Pancasila dan Ke-Islam-an sehingga terwujud generasi bangsa yang Pancasilais dan Rahmatan Lil Alamin',
-        welcomeImageUrl: 'https://blogger.googleusercontent.com/img/a/AVvXsEiQdpY7EUsh8mENLZ56Pqunz7QrCTrf4xpMg4eWACNZz5HGnQDxT_61jAlZ9wccskHTFuzMM-rPnFMyC5SeMViY7FkOSLcXm0Tk32k3JG_DCATUB_ossNhtE87-mWezU315A1hypMrkDAwN3dPK70Dqp1dfdy3zIBhl8-Kcf4OX-bV1qcHZ6m5YXN7gLw=s600'
-    };
 
+    const heroImage = content?.heroImageUrl || 'https://images.unsplash.com/photo-1576765682835-a73c552096e2?q=80&w=2070&auto=format&fit=crop';
+    
     return (
         <div>
             {/* Hero Section */}
             <section
-                className="relative bg-cover bg-center h-[42.85vw] max-h-[600px] text-white flex items-center"
+                className="relative bg-cover bg-center h-96 text-white flex items-center justify-center text-center"
+                style={{ backgroundImage: `url(${heroImage})` }}
             >
-                <div className="absolute inset-0 hero-overlay"></div>
-                <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="w-full md:w-1/2 lg:w-2/5">
-                         <h2 className="text-4xl md:text-5xl font-bold font-sans leading-tight drop-shadow-md">Penganugeragan Satya Lencana 10 dan 20 Tahun</h2>
-                         <p className="mt-4 text-sm md:text-base max-w-3xl mx-auto drop-shadow-sm">pada HAB Kemenag RI ke 78 Tahun 2024 di Ponpes Ushuluddin Singkawang</p>
-                    </div>
-                </div>
-            </section>
-
-             {/* Welcome Section */}
-            <section className="guru-wrapper py-20">
-                <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center">
-                    <div className="guru md:w-[35%] mb-8 md:mb-0 text-center">
-                        <div className="widget bg-[--sch-main-color] text-white p-5 relative z-0">
-                            <h3 className="text-2xl font-bold mb-5">{displayContent.welcomeTitle}</h3>
-                             <img src={displayContent.welcomeImageUrl} alt="Kepala Madrasah" className="w-full rounded shadow-lg"/>
-                            <h3 className="font-bold text-xl mt-5">MUSLIMAH, S.Pd.I</h3>
-                        </div>
-                    </div>
-                    <div className="guru md:w-[65%] md:pl-10">
-                        <p className="mb-4 text-gray-700 leading-relaxed">{displayContent.welcomeText}</p>
-                        <h3 className="text-xl font-bold font-sans mt-6 mb-2">Visi</h3>
-                        <p className="text-gray-700 leading-relaxed">Membekali generasi penerus bangsa dengan dasar-dasar wawasan Pancasila dan Ke-Islam-an sehingga terwujud generasi bangsa yang Pancasilais dan Rahmatan Lil Alamin</p>
-                    </div>
-                </div>
-            </section>
-            
-            {/* Statistics Section */}
-            <section className="data-wrapper relative">
-                <div className="bg bgopacity py-20">
-                    <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-                        <div id="dataschool2" className="bg-[--sch-body-color-yellow] p-10 rounded-lg shadow-[--sch-dataschool-box-shadow]">
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center text-dark">
-                                <div className="element-counter">
-                                    <div className="counter">
-                                        <span className="icon-counter text-4xl mb-3 flex justify-center"><i className="fas fa-user-graduate"></i></span>
-                                        <div className="counter-box text-2xl font-extrabold"><AnimatedCounter target={4570} /><span className="counter-plus">+</span></div>
-                                        <span className="counter-title text-base">Lulusan</span>
-                                    </div>
-                                </div>
-                                <div className="element-counter">
-                                    <div className="counter">
-                                        <span className="icon-counter text-4xl mb-3 flex justify-center"><i className="fas fa-chalkboard-user"></i></span>
-                                        <div className="counter-box text-2xl font-extrabold"><AnimatedCounter target={27} /></div>
-                                        <span className="counter-title text-base">Guru</span>
-                                    </div>
-                                </div>
-                                <div className="element-counter">
-                                    <div className="counter">
-                                        <span className="icon-counter text-4xl mb-3 flex justify-center"><i className="fas fa-users"></i></span>
-                                        <div className="counter-box text-2xl font-extrabold"><AnimatedCounter target={350} /><span className="counter-plus">+</span></div>
-                                        <span className="counter-title text-base">Siswa Aktif</span>
-                                    </div>
-                                </div>
-                                <div className="element-counter">
-                                    <div className="counter">
-                                        <span className="icon-counter text-4xl mb-3 flex justify-center"><i className="fas fa-memo-pad"></i></span>
-                                        <div className="counter-box text-2xl font-extrabold"><AnimatedCounter target={20} /><span className="counter-plus">+</span></div>
-                                        <span className="counter-title text-base">Extra Kurikuler</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                <div className="absolute inset-0 bg-black opacity-50"></div>
+                <div className="relative z-10 px-4">
+                    <h1 className="text-4xl md:text-5xl font-bold font-sans drop-shadow-md">Selamat Datang di MIN Singkawang</h1>
+                    <p className="mt-4 text-lg max-w-3xl mx-auto drop-shadow-sm">Membentuk Generasi Cerdas, Berakhlak, dan Berprestasi</p>
+                    <Link to="/ppdb" className="mt-8 inline-block bg-primary text-white font-bold py-3 px-6 rounded-lg hover:bg-primary-dark transition-colors">
+                        Pendaftaran Siswa Baru
+                    </Link>
                 </div>
             </section>
             
             {/* Latest News */}
-            <main className="main-wrapper py-12 md:py-20">
+            <section className="py-16 bg-light">
                  <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="text-wrapper text-center w-full max-w-xl mx-auto mb-12 relative">
-                        <h2 className="widget-title text-3xl font-bold relative pb-2">Berita Terkini</h2>
-                    </div>
-                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <h2 className="text-3xl font-bold font-sans text-center text-dark mb-8">Berita Terkini</h2>
+                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {latestNews.length > 0 ? latestNews.map((news) => (
-                            <NewsCard key={news.id} article={news} isPage={false} />
+                            <NewsCard key={news.id} article={news} />
                         )) : <p className="col-span-full text-center text-gray-500">Belum ada berita yang dipublikasikan.</p>}
                     </div>
                      <div className="text-center mt-12">
@@ -186,7 +87,7 @@ const HomePage: React.FC = () => {
                         </Link>
                     </div>
                 </div>
-            </main>
+            </section>
         </div>
     );
 };

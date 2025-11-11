@@ -6,22 +6,16 @@ import { db } from '../../services/firebase';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 
 const TeacherCard: React.FC<{ teacher: Teacher }> = ({ teacher }) => (
-  <div className="bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 overflow-hidden flex flex-col items-center">
-    <div className="w-full">
-      <div className="relative pt-[100%]"> {/* 1:1 Aspect Ratio */}
-        <img src={teacher.imageUrl} alt={teacher.name} className="absolute top-0 left-0 w-full h-full object-cover" />
-      </div>
+    <div className="bg-white rounded-lg shadow-md overflow-hidden text-center hover:shadow-xl transition-shadow duration-300">
+        <Link to={`/guru/${teacher.id}`}>
+            <img src={teacher.imageUrl} alt={teacher.name} className="w-full h-64 object-cover" />
+        </Link>
+        <div className="p-4">
+            <h3 className="text-lg font-bold text-gray-800">{teacher.name}</h3>
+            <p className="text-sm text-primary font-semibold">{teacher.position}</p>
+        </div>
     </div>
-    <div className="p-4 text-center">
-      <h3 className="text-base font-bold text-gray-800">{teacher.name}</h3>
-      <p className="text-sm text-gray-500 mt-1">{teacher.position}</p>
-      <Link to={`/guru/${teacher.id}`} className="mt-3 inline-block text-primary font-semibold text-sm hover:underline">
-        Lihat Profil
-      </Link>
-    </div>
-  </div>
 );
-
 
 const GtkPage: React.FC = () => {
     const [teachers, setTeachers] = useState<Teacher[]>([]);
@@ -31,7 +25,7 @@ const GtkPage: React.FC = () => {
         const fetchTeachers = async () => {
             setIsLoading(true);
             const teachersCollectionRef = collection(db, "teachers");
-            const q = query(teachersCollectionRef, orderBy("name")); // Order by name for consistency
+            const q = query(teachersCollectionRef, orderBy("name"));
             const data = await getDocs(q);
             const teachersData = data.docs.map(doc => ({ ...doc.data(), id: doc.id } as Teacher));
             setTeachers(teachersData);
@@ -52,7 +46,7 @@ const GtkPage: React.FC = () => {
                         <LoaderCircle className="animate-spin text-primary" size={40} />
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
                         {teachers.map(teacher => (
                             <TeacherCard key={teacher.id} teacher={teacher} />
                         ))}
