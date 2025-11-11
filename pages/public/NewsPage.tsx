@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { db } from '../../services/firebase';
@@ -7,25 +5,41 @@ import { collection, doc, getDoc, getDocs, query, orderBy } from 'firebase/fires
 import { NewsArticle } from '../../types';
 import { LoaderCircle, Calendar, ArrowLeft } from 'lucide-react';
 
-const NewsCard: React.FC<{ article: NewsArticle }> = ({ article }) => (
-    <div className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300">
-        <Link to={`/berita/${article.id}`} className="block">
-            <img src={article.imageUrl} alt={article.title} className="w-full h-56 object-cover" />
-            <div className="p-6">
-                <span className="text-sm text-gray-500">{new Date(article.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
-                <h3 className="font-bold text-lg mt-2 mb-3 h-14 overflow-hidden text-gray-800">{article.title}</h3>
-                <p className="text-sm text-gray-600 mb-4 h-20 overflow-hidden">{article.excerpt}</p>
-                <span className="font-semibold text-primary hover:underline">Baca Selengkapnya</span>
+const NewsCard: React.FC<{ article: NewsArticle }> = ({ article }) => {
+    const date = new Date(article.date + 'T00:00:00');
+    const day = date.toLocaleDateString('id-ID', { day: '2-digit' });
+    const month = date.toLocaleDateString('id-ID', { month: 'short' });
+    const year = date.toLocaleDateString('id-ID', { year: 'numeric' });
+
+    return (
+        <article className="mediapost flex flex-col md:flex-row bg-white shadow-md hover:shadow-lg transition-shadow duration-300">
+             <div className="scinfo w-full md:w-[15%] flex-shrink-0 flex md:flex-col items-stretch">
+                <div className="scdate w-full bg-[--sch-body-color-yellow] p-2.5 flex flex-wrap justify-center items-center text-center leading-tight font-archivo">
+                    <span className="day text-3xl font-extrabold leading-none">{day}</span>
+                    <span className="month text-base font-medium mx-1.5">{month}</span>
+                    <span className="year text-sm">{year}</span>
+                </div>
+                <div className="jumlah-comments w-[30%] md:w-full bg-[--sch-main-color] text-white flex justify-center items-center p-2.5 text-xs">
+                    {article.category}
+                </div>
             </div>
-        </Link>
-    </div>
-);
+            <div className="boxinfo w-full md:w-[85%] p-4 md:pl-5 flex flex-col justify-center">
+                 <h2 className='text-lg font-bold mb-2 leading-tight text-dark hover:text-primary transition-colors'>
+                    <Link to={`/berita/${article.id}`}>{article.title}</Link>
+                 </h2>
+                 <p className="post-snippet text-sm text-gray-600 mb-3">{article.excerpt}</p>
+                 <Link to={`/berita/${article.id}`} className="font-semibold text-primary text-sm hover:underline self-start">
+                    Baca Selengkapnya
+                </Link>
+            </div>
+        </article>
+    );
+};
+
 
 const NewsContent: React.FC<{ content: string }> = ({ content }) => {
-    // Split content by newline characters and render each line as a paragraph.
-    // This is safer than dangerouslySetInnerHTML and fits the new textarea input.
     return (
-        <div className="prose max-w-none text-gray-700 leading-relaxed">
+        <div className="prose max-w-none text-gray-700 leading-relaxed space-y-4">
             {content.split('\n').map((paragraph, index) => (
                 <p key={index}>{paragraph}</p>
             ))}
@@ -35,14 +49,14 @@ const NewsContent: React.FC<{ content: string }> = ({ content }) => {
 
 const NewsDetailPage: React.FC<{ article: NewsArticle }> = ({ article }) => (
     <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-        <img src={article.imageUrl} alt={article.title} className="w-full h-96 object-cover" />
+        <img src={article.imageUrl} alt={article.title} className="w-full h-auto max-h-[500px] object-cover" />
         <div className="p-6 md:p-10">
             <Link to="/berita" className="inline-flex items-center gap-2 text-primary font-semibold mb-4 hover:underline">
                 <ArrowLeft size={18} /> Kembali ke Semua Berita
             </Link>
-            <h1 className="text-3xl md:text-4xl font-bold font-poppins text-gray-800 mb-3">{article.title}</h1>
-            <div className="flex items-center gap-4 text-sm text-gray-500 mb-6">
-                <span className="flex items-center gap-1.5"><Calendar size={14} /> {new Date(article.date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</span>
+            <h1 className="text-3xl md:text-4xl font-bold font-sans text-gray-800 mb-3">{article.title}</h1>
+            <div className="flex items-center gap-4 text-sm text-gray-500 mb-6 border-b pb-4">
+                <span className="flex items-center gap-1.5"><Calendar size={14} /> {new Date(article.date + 'T00:00:00').toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</span>
                 <span className="px-2 py-1 text-xs rounded-full bg-gray-200">{article.category}</span>
             </div>
             <NewsContent content={article.content} />
@@ -87,8 +101,8 @@ const NewsPage: React.FC = () => {
     }
 
     return (
-        <div className="bg-light">
-            <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="bg-light py-12">
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                 {id ? (
                     article ? (
                         <NewsDetailPage article={article} />
@@ -100,9 +114,9 @@ const NewsPage: React.FC = () => {
                     )
                 ) : (
                     <>
-                        <h1 className="text-4xl font-bold font-poppins text-center text-primary mb-10">Arsip Berita</h1>
+                        <h1 className="text-4xl font-bold font-sans text-center text-primary mb-10">Arsip Berita</h1>
                         {articles.length > 0 ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                                 {articles.map(art => <NewsCard key={art.id} article={art} />)}
                             </div>
                         ) : (

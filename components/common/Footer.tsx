@@ -1,16 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { NAV_LINKS } from '../../constants';
-import { MapPin, Phone, Mail, Facebook, Instagram, Youtube, LoaderCircle } from 'lucide-react';
 import { db } from '../../services/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { SchoolInfoSettings } from '../../types';
+import { LoaderCircle, ChevronUp } from 'lucide-react';
 
 const Footer: React.FC = () => {
   const [settings, setSettings] = useState<SchoolInfoSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showBackTop, setShowBackTop] = useState(false);
 
   useEffect(() => {
+    const handleScroll = () => {
+      setShowBackTop(window.scrollY > 100);
+    };
+    window.addEventListener('scroll', handleScroll);
+
     const docRef = doc(db, 'settings', 'schoolInfo');
     const unsubscribe = onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {
@@ -24,97 +30,73 @@ const Footer: React.FC = () => {
       setIsLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      window.removeEventListener('scroll', handleScroll);
+    };
   }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const info = settings?.info;
   const socialLinks = settings?.socialLinks;
   const importantLinks = settings?.importantLinks || [];
 
   return (
-    <footer className="bg-gray-800 text-white">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {isLoading ? (
-          <div className="flex justify-center items-center h-40">
-            <LoaderCircle className="animate-spin text-white" size={32} />
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            
-            {/* Column 1: School Identity & Social Media */}
-            <div className="md:col-span-1">
-              {info && (
-                <>
-                  <div className="flex items-center gap-3 mb-4">
-                    <img src={info.logo} alt="Logo" className="h-12 w-12 bg-white p-1 rounded-full" />
-                    <div>
-                      <h3 className="text-xl font-bold font-poppins">{info.name}</h3>
-                      <p className="text-sm text-gray-400">{info.affiliation}</p>
+    <>
+      <footer id='footer' className="bg-[--sch-main-color] text-white font-sans">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-10">
+          {isLoading ? (
+            <div className="flex justify-center items-center h-40">
+              <LoaderCircle className="animate-spin text-white" size={32} />
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
+              {/* Column 1: School Identity */}
+              <div className="pr-8 border-r-0 lg:border-r-2 border-white/20">
+                {info && (
+                    <img src={info.logo} alt="Logo" className="h-10 w-auto mb-4" />
+                )}
+                <h3 className="text-lg font-bold">Mendidik generasi penerus bangsa</h3>
+              </div>
+
+              {/* Column 2: Address */}
+              <div>
+                <h3 className="text-lg font-bold mb-4">Alamat Sekolah</h3>
+                <p className="text-sm text-gray-200">{info?.address}</p>
+              </div>
+
+              {/* Column 3: Contact */}
+              <div>
+                <h3 className="text-lg font-bold mb-4">Hubungi Kami</h3>
+                <p className="text-sm text-gray-200">T. {info?.phone}</p>
+                <p className="text-sm text-gray-200">E. {info?.email}</p>
+              </div>
+
+              {/* Column 4: Social Media */}
+              <div>
+                <h3 className="text-lg font-bold mb-4">Media Sosial</h3>
+                 {socialLinks && (
+                    <div className="flex space-x-2">
+                        <a href={socialLinks.facebook} target="_blank" rel="noopener noreferrer" className="w-10 h-10 flex items-center justify-center border border-white/50 rounded-md text-white hover:bg-white hover:text-dark transition-colors"><i className="fab fa-facebook-f"></i></a>
+                        <a href={socialLinks.instagram} target="_blank" rel="noopener noreferrer" className="w-10 h-10 flex items-center justify-center border border-white/50 rounded-md text-white hover:bg-white hover:text-dark transition-colors"><i className="fab fa-instagram"></i></a>
+                        <a href={socialLinks.youtube} target="_blank" rel="noopener noreferrer" className="w-10 h-10 flex items-center justify-center border border-white/50 rounded-md text-white hover:bg-white hover:text-dark transition-colors"><i className="fab fa-youtube"></i></a>
                     </div>
-                  </div>
-                  <div className="space-y-3 text-gray-300">
-                    <p className="flex items-start gap-2"><MapPin size={18} className="mt-1 flex-shrink-0" /> {info.address}</p>
-                    <p className="flex items-center gap-2"><Phone size={18} /> {info.phone}</p>
-                    <p className="flex items-center gap-2"><Mail size={18} /> {info.email}</p>
-                  </div>
-                </>
-              )}
-              {socialLinks && (
-                 <div className="mt-6">
-                    <h4 className="text-md font-semibold mb-3">Ikuti Kami</h4>
-                    <div className="flex space-x-4">
-                      <a href={socialLinks.facebook} target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-primary transition-colors"><Facebook size={24} /></a>
-                      <a href={socialLinks.instagram} target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-primary transition-colors"><Instagram size={24} /></a>
-                      <a href={socialLinks.youtube} target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-primary transition-colors"><Youtube size={24} /></a>
-                    </div>
-                  </div>
-              )}
+                )}
+              </div>
             </div>
-
-            {/* Column 2: Quick Links */}
-            <div>
-              <h4 className="text-lg font-semibold mb-4">Tautan Cepat</h4>
-              <ul className="space-y-2">
-                {NAV_LINKS.map(link => (
-                  <li key={link.name}>
-                    <Link to={link.href} className="text-gray-300 hover:text-primary transition-colors">
-                      {link.name}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Column 3: Important Links */}
-            <div>
-              <h4 className="text-lg font-semibold mb-4">Tautan Penting</h4>
-              {importantLinks.length > 0 ? (
-                <ul className="space-y-2">
-                  {importantLinks.map(link => (
-                    <li key={link.name}>
-                      <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-primary transition-colors">
-                        {link.name}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-gray-400 text-sm">Tidak ada tautan penting.</p>
-              )}
-            </div>
-
-          </div>
-        )}
-      </div>
-      <div className="bg-primary-dark py-4">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-sm text-gray-300 flex flex-col md:flex-row justify-between items-center text-center">
-          <p>&copy; {new Date().getFullYear()} {info?.name || 'MIN Singkawang'}. All Rights Reserved.</p>
-          <Link to="/admin/login" className="mt-2 md:mt-0 hover:text-white transition-colors">
-            Developed by MAHFUD SIDIK
-          </Link>
+          )}
         </div>
+      </footer>
+      <div id='credit' className="bg-white py-6 text-center text-sm text-dark">
+        <p>2022-{new Date().getFullYear()} &copy; <a href='/' className="hover:text-primary">{info?.name || 'MIN Singkawang'}</a> - All Rights Reserved</p> 
       </div>
-    </footer>
+      <button onClick={scrollToTop} className={`backtop ${showBackTop ? 'show' : ''}`} title="Back to Top">
+        <ChevronUp />
+      </button>
+    </>
   );
 };
 

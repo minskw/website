@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { SCHOOL_INFO, NAV_LINKS, SOCIAL_LINKS } from '../../constants';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Search } from 'lucide-react';
 
 const Header: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -18,45 +18,45 @@ const Header: React.FC = () => {
   }, []);
 
   return (
-    <header className="text-dark font-open-sans">
+    <header className="text-dark font-sans">
       {/* Top Bar */}
-      <div className="bg-primary text-white h-10 flex items-center">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-          <div className="w-full lg:w-3/4 overflow-hidden">
-            <marquee className="text-sm">Selamat datang di portal Info MIN Singkawang, the only one madrasah negeri in Singkawang | Hebat bermartabat, Mandiri Berprestasi</marquee>
-          </div>
-          <div className="hidden lg:flex items-center space-x-4">
-            <a href={SOCIAL_LINKS.facebook} target="_blank" rel="noopener noreferrer" className="hover:text-secondary"><i className="fab fa-facebook-f"></i></a>
-            <a href={SOCIAL_LINKS.instagram} target="_blank" rel="noopener noreferrer" className="hover:text-secondary"><i className="fab fa-instagram"></i></a>
-            <a href={SOCIAL_LINKS.youtube} target="_blank" rel="noopener noreferrer" className="hover:text-secondary"><i className="fab fa-youtube"></i></a>
+      <div className="bg-[--sch-main-color] text-white h-10 relative">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex items-center h-full topwrapper">
+          <div className="lg:w-1/2"></div>
+          <div className="lg:w-1/2 flex justify-between items-center h-full">
+            <div className="topbox bg-[--sch-main-color] h-10 leading-10 px-4 ml-[25%] w-full z-10">
+              <marquee className="text-sm">Selamat datang di portal Info MIN Singkawang, the only one madrasah negeri in Singkawang | Hebat bermartabat, Mandiri Berprestasi</marquee>
+            </div>
+            <div className="hidden lg:flex items-center space-x-3 pr-4 z-10">
+              <a href={SOCIAL_LINKS.facebook} target="_blank" rel="noopener noreferrer" className="hover:text-[--sch-teks-color-yellow]"><i className="fab fa-facebook-f"></i></a>
+              <a href={SOCIAL_LINKS.instagram} target="_blank" rel="noopener noreferrer" className="hover:text-[--sch-teks-color-yellow]"><i className="fab fa-instagram"></i></a>
+              <a href={SOCIAL_LINKS.youtube} target="_blank" rel="noopener noreferrer" className="hover:text-[--sch-teks-color-yellow]"><i className="fab fa-youtube"></i></a>
+            </div>
           </div>
         </div>
       </div>
       
       {/* Main Header */}
-      <div className={`bg-white shadow-sm w-full z-50 transition-all duration-300 border-t-8 border-primary ${isSticky ? 'fixed top-0 animate-fade-in-down' : 'relative'}`}>
+      <div className={`bg-white w-full z-50 transition-all duration-300 border-t-7 border-[--sch-main-color] ${isSticky ? 'fixed top-0 shadow-lg' : 'relative -top-28 shadow-sm'}`}>
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-20">
+          <div className="flex items-center justify-between h-[50px]">
             <div className="flex items-center">
-              <Link to="/" className="flex-shrink-0 flex items-center gap-3">
-                <img className="h-14 w-14" src={SCHOOL_INFO.logo} alt={`Logo ${SCHOOL_INFO.name}`} />
-                <div>
-                  <h1 className="text-xl font-bold text-primary">{SCHOOL_INFO.name}</h1>
-                  <p className="text-xs text-gray-500 -mt-1">KALIMANTAN BARAT</p>
-                </div>
+              <Link to="/" className="flex-shrink-0 flex items-center gap-3 -mt-10 mr-12">
+                <img className="h-11 w-auto" src={SCHOOL_INFO.logo} alt={`Logo ${SCHOOL_INFO.name}`} />
               </Link>
             </div>
-            <div className="hidden lg:block">
-              <nav className="ml-10 flex items-baseline space-x-6">
+            
+            <div className="hidden lg:flex flex-grow items-center justify-between">
+              <nav className="flex items-baseline space-x-2">
                 {NAV_LINKS.map((link) => (
                   <NavLink
                     key={link.name}
                     to={link.href}
                     className={({ isActive }) =>
-                      `text-sm font-semibold transition-colors duration-200 uppercase ${
+                      `px-2.5 leading-[50px] text-sm font-normal transition-colors duration-200 uppercase ${
                         isActive
-                          ? 'text-primary'
-                          : 'text-dark hover:text-primary'
+                          ? 'text-[--sch-main-color]'
+                          : 'text-dark hover:text-[--sch-main-color]'
                       }`
                     }
                   >
@@ -64,12 +64,18 @@ const Header: React.FC = () => {
                   </NavLink>
                 ))}
               </nav>
+              <div className="flex items-center">
+                <button className="p-2 text-dark hover:text-[--sch-main-color]">
+                  <Search size={18} />
+                </button>
+              </div>
             </div>
+
             <div className="-mr-2 flex lg:hidden">
               <button
                 onClick={() => setIsOpen(!isOpen)}
                 type="button"
-                className="bg-primary inline-flex items-center justify-center p-2 rounded-md text-white hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white"
+                className="inline-flex items-center justify-center p-2 rounded-md text-dark hover:text-primary focus:outline-none"
                 aria-controls="mobile-menu"
                 aria-expanded="false"
               >
@@ -91,7 +97,7 @@ const Header: React.FC = () => {
                   onClick={() => setIsOpen(false)}
                   className={({ isActive }) =>
                     `block px-3 py-2 rounded-md text-base font-medium ${
-                      isActive ? 'bg-primary text-white' : 'text-dark hover:text-primary'
+                      isActive ? 'bg-primary text-white' : 'text-dark hover:bg-gray-100'
                     }`
                   }
                 >
@@ -105,6 +111,4 @@ const Header: React.FC = () => {
     </header>
   );
 };
-
-// FIX: Added default export to resolve "Module has no default export" error.
 export default Header;

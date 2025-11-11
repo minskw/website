@@ -205,7 +205,7 @@ const AdminNewsPage: React.FC = () => {
         <div className="bg-white p-6 rounded-lg shadow-md">
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold text-gray-800">Manajemen Berita</h1>
-                <button onClick={() => { setSelectedArticle(null); setIsModalOpen(true); }} className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark">
+                <button onClick={() => { setSelectedArticle(null); setIsModalOpen(true); }} className="flex items-center gap-2 bg-secondary text-white px-4 py-2 rounded-lg hover:bg-red-700">
                     <PlusCircle size={18} /> Tambah Berita
                 </button>
             </div>
