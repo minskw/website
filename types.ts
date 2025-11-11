@@ -130,3 +130,12 @@ export interface GalleryAlbum {
   images: GalleryImageItem[];
   createdAt: string; // ISO date string for sorting
 }
+
+export interface VideoItem {
+  id: string;
+  title: string;
+  type: 'youtube' | 'google-drive';
+  url: string;
+  thumbnailUrl: string;
+  createdAt: string; // ISO date string for sorting
+}

@@ -1,6 +1,7 @@
 
 
 
+
 import React, { useState } from 'react';
 import { HashRouter as Router, Routes, Route, Outlet, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './hooks/useAuth';
@@ -30,6 +31,7 @@ import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import AdminPpdbPage from './pages/admin/AdminPpdbPage';
 import AdminNewsPage from './pages/admin/AdminNewsPage';
 import AdminGalleryPage from './pages/admin/AdminGalleryPage';
+import AdminVideosPage from './pages/admin/AdminVideosPage';
 import AdminTeachersPage from './pages/admin/AdminTeachersPage';
 import AdminSettingsPage from './pages/admin/AdminSettingsPage';
 import AdminSetupPage from './pages/admin/AdminSetupPage';
@@ -114,6 +116,7 @@ function App() {
             <Route path="/admin/ppdb" element={<AdminPpdbPage />} />
             <Route path="/admin/berita" element={<AdminNewsPage />} />
             <Route path="/admin/galeri" element={<AdminGalleryPage />} />
+            <Route path="/admin/video" element={<AdminVideosPage />} />
             <Route path="/admin/guru" element={<AdminTeachersPage />} />
             <Route path="/admin/pengaturan" element={<AdminSettingsPage />} />
             <Route path="/admin/setup" element={<AdminSetupPage />} />

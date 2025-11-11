@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Info, Newspaper, Image, Users, GraduationCap, Phone, LayoutDashboard, UserCheck, Settings, PenSquare, BookUser, DatabaseZap, GalleryHorizontal, Briefcase } from 'lucide-react';
+import { Home, Info, Newspaper, Image, Users, GraduationCap, Phone, LayoutDashboard, UserCheck, Settings, PenSquare, BookUser, DatabaseZap, GalleryHorizontal, Briefcase, Video } from 'lucide-react';
 
 // School Information Constants
 export const SCHOOL_INFO = {
@@ -32,6 +32,7 @@ export const ADMIN_NAV_LINKS = [
     { name: 'Manajemen PPDB', href: '/admin/ppdb', icon: <UserCheck size={20}/> },
     { name: 'Manajemen Berita', href: '/admin/berita', icon: <Newspaper size={20}/> },
     { name: 'Manajemen Galeri', href: '/admin/galeri', icon: <Image size={20}/> },
+    { name: 'Manajemen Video', href: '/admin/video', icon: <Video size={20}/> },
     { name: 'Manajemen Guru', href: '/admin/guru', icon: <Users size={20}/> },
     { name: 'Pengaturan', href: '/admin/pengaturan', icon: <Settings size={20}/> },
     { name: 'Setup Awal', href: '/admin/setup', icon: <DatabaseZap size={20}/> },
