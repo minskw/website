@@ -1,111 +1,122 @@
+
 import React, { useState, useEffect, FormEvent } from 'react';
 import { db } from '../../services/firebase';
 import { collection, doc, addDoc, updateDoc, deleteDoc, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { GalleryAlbum, GalleryImageItem } from '../../types';
-import { PlusCircle, Edit, Trash2, LoaderCircle, X } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, LoaderCircle, X, ImagePlus } from 'lucide-react';
 
 type AlbumFormData = Omit<GalleryAlbum, 'id' | 'createdAt'>;
 
 const emptyAlbum: AlbumFormData = {
     title: '',
     category: 'Kegiatan',
-    images: []
-};
-
-// Helper to convert images array to string for textarea
-const imagesToString = (images: GalleryImageItem[]): string => {
-    return images.map(img => `${img.imageUrl.trim()}|${img.caption.trim()}`).join('\n');
-};
-
-// Helper to convert string from textarea back to images array
-const stringToImages = (str: string): GalleryImageItem[] => {
-    if (!str.trim()) return [];
-    return str.split('\n').map(line => {
-        const parts = line.split('|');
-        return {
-            imageUrl: parts[0]?.trim() || '',
-            caption: parts[1]?.trim() || ''
-        };
-    }).filter(img => img.imageUrl); // Only include items with an image URL
+    images: [{ imageUrl: '', caption: '' }],
 };
 
 const AlbumFormModal: React.FC<{
     isOpen: boolean;
     onClose: () => void;
-    onSave: (album: Omit<GalleryAlbum, 'id'>, id?: string) => void;
+    onSave: (album: AlbumFormData, id?: string) => void;
     album: GalleryAlbum | null;
 }> = ({ isOpen, onClose, onSave, album }) => {
     const [formData, setFormData] = useState<AlbumFormData>(emptyAlbum);
-    const [imagesText, setImagesText] = useState('');
 
     useEffect(() => {
-        if (isOpen) {
-            if (album) {
-                const { id, createdAt, ...dataToEdit } = album;
-                setFormData(dataToEdit);
-                setImagesText(imagesToString(album.images));
-            } else {
-                setFormData(emptyAlbum);
-                setImagesText('');
-            }
-        }
+        setFormData(album ? { title: album.title, category: album.category, images: album.images.length > 0 ? album.images : [{ imageUrl: '', caption: '' }] } : emptyAlbum);
     }, [album, isOpen]);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const handleAlbumChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleImagesChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        setImagesText(e.target.value);
+    const handleImageChange = (index: number, field: keyof GalleryImageItem, value: string) => {
+        const newImages = [...formData.images];
+        newImages[index] = { ...newImages[index], [field]: value };
+        setFormData(prev => ({ ...prev, images: newImages }));
+    };
+
+    const addImageField = () => {
+        setFormData(prev => ({ ...prev, images: [...prev.images, { imageUrl: '', caption: '' }] }));
+    };
+
+    const removeImageField = (index: number) => {
+        if (formData.images.length > 1) {
+            const newImages = formData.images.filter((_, i) => i !== index);
+            setFormData(prev => ({ ...prev, images: newImages }));
+        }
     };
 
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
-        const finalImages = stringToImages(imagesText);
-        if (finalImages.length === 0) {
-            alert("Album harus memiliki setidaknya satu gambar.");
+        const finalData = {
+            ...formData,
+            images: formData.images.filter(img => img.imageUrl.trim() !== '')
+        };
+        if (finalData.images.length === 0) {
+            alert("Mohon tambahkan setidaknya satu gambar.");
             return;
         }
-        
-        const dataToSave = {
-            ...formData,
-            images: finalImages,
-            createdAt: album?.createdAt || new Date().toISOString()
-        };
-        onSave(dataToSave, album?.id);
+        onSave(finalData, album?.id);
     };
 
     if (!isOpen) return null;
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
                 <form onSubmit={handleSubmit} className="p-6">
-                    <div className="flex justify-between items-center mb-4">
-                        <h2 className="text-xl font-bold">{album ? 'Edit Album Galeri' : 'Tambah Album Baru'}</h2>
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-xl font-bold">{album ? 'Edit Album' : 'Tambah Album Baru'}</h2>
                         <button type="button" onClick={onClose}><X /></button>
                     </div>
+                    
                     <div className="space-y-4">
-                        <input name="title" value={formData.title} onChange={handleChange} placeholder="Judul Album" className="w-full p-2 border rounded" required />
-                        <select name="category" value={formData.category} onChange={handleChange} className="w-full p-2 border rounded">
+                        <input name="title" value={formData.title} onChange={handleAlbumChange} placeholder="Judul Album" className="w-full p-2 border rounded" required />
+                        <select name="category" value={formData.category} onChange={handleAlbumChange} className="w-full p-2 border rounded">
                             <option value="Kegiatan">Kegiatan</option>
                             <option value="Prestasi">Prestasi</option>
                             <option value="Fasilitas">Fasilitas</option>
                             <option value="Lainnya">Lainnya</option>
                         </select>
-                        <textarea
-                            value={imagesText}
-                            onChange={handleImagesChange}
-                            placeholder="Daftar gambar. Format per baris: URL_GAMBAR|Keterangan Gambar"
-                            className="w-full p-2 border rounded h-48 font-mono text-sm"
-                            required
-                        />
-                        <p className="text-xs text-gray-500">
-                            Masukkan satu gambar per baris. Pisahkan URL gambar dan keterangan dengan tanda pipa (|). <br/>
-                            Contoh: https://example.com/foto.jpg|Upacara bendera 17 Agustus
-                        </p>
+                        
+                        <h3 className="text-lg font-semibold border-b pb-2">Gambar</h3>
+                        {formData.images.map((image, index) => (
+                            <div key={index} className="flex gap-2 items-start border p-3 rounded-md relative">
+                                <span className="font-bold text-gray-500">{index + 1}.</span>
+                                <div className="flex-grow space-y-2">
+                                     <input
+                                        type="text"
+                                        value={image.imageUrl}
+                                        onChange={e => handleImageChange(index, 'imageUrl', e.target.value)}
+                                        placeholder="URL Gambar"
+                                        className="w-full p-2 border rounded"
+                                        required
+                                    />
+                                    <input
+                                        type="text"
+                                        value={image.caption}
+                                        onChange={e => handleImageChange(index, 'caption', e.target.value)}
+                                        placeholder="Keterangan (Caption)"
+                                        className="w-full p-2 border rounded"
+                                    />
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => removeImageField(index)}
+                                    className="p-2 text-red-500 hover:bg-red-100 rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
+                                    disabled={formData.images.length <= 1}
+                                    title="Hapus gambar"
+                                >
+                                    <Trash2 size={16} />
+                                </button>
+                            </div>
+                        ))}
+                        <button type="button" onClick={addImageField} className="flex items-center gap-2 text-sm text-blue-600 hover:underline">
+                            <ImagePlus size={16} /> Tambah Gambar Lain
+                        </button>
                     </div>
+                    
                     <div className="flex justify-end gap-2 mt-6">
                         <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-200 rounded">Batal</button>
                         <button type="submit" className="px-4 py-2 bg-primary text-white rounded">Simpan Album</button>
@@ -115,7 +126,6 @@ const AlbumFormModal: React.FC<{
         </div>
     );
 };
-
 
 const AdminGalleryPage: React.FC = () => {
     const [albums, setAlbums] = useState<GalleryAlbum[]>([]);
@@ -131,18 +141,20 @@ const AdminGalleryPage: React.FC = () => {
             setAlbums(albumsData);
             setIsLoading(false);
         }, (error) => {
-            console.error("Error fetching gallery albums:", error);
+            console.error("Error fetching albums in real-time:", error);
             setIsLoading(false);
         });
         return () => unsubscribe();
     }, []);
 
-    const handleSave = async (data: Omit<GalleryAlbum, 'id'>, id?: string) => {
+    const handleSave = async (data: AlbumFormData, id?: string) => {
         try {
             if (id) {
-                await updateDoc(doc(db, "gallery_albums", id), data);
+                const albumRef = doc(db, "gallery_albums", id);
+                await updateDoc(albumRef, { ...data });
             } else {
-                await addDoc(collection(db, "gallery_albums"), data);
+                const albumRef = collection(db, "gallery_albums");
+                await addDoc(albumRef, { ...data, createdAt: new Date().toISOString() });
             }
             setIsModalOpen(false);
         } catch (error) {
@@ -187,7 +199,7 @@ const AdminGalleryPage: React.FC = () => {
                             {albums.map(album => (
                                 <tr key={album.id} className="border-b hover:bg-gray-50">
                                     <td className="py-3 px-4 font-medium text-gray-800">{album.title}</td>
-                                    <td className="py-3 px-4"><span className="px-2 py-1 text-xs rounded-full bg-gray-200">{album.category}</span></td>
+                                    <td className="py-3 px-4">{album.category}</td>
                                     <td className="py-3 px-4 text-center">{album.images.length}</td>
                                     <td className="py-3 px-4 flex gap-2">
                                         <button onClick={() => { setSelectedAlbum(album); setIsModalOpen(true); }} className="p-2 text-blue-600 hover:bg-blue-100 rounded-full" title="Edit"><Edit size={16} /></button>
